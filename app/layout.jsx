@@ -1,3 +1,5 @@
+import "./globals.css"; // <--- Critical: Imports Tailwind CSS
+
 export const metadata = {
   title: "Todo.txt Editor",
   description: "Minimalist, Syncing Todo.txt Editor",

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, X, Lock, Unlock, ArrowRight, Cloud, CloudOff, RefreshCw } from 'lucide-react';
+import { Search, X, Lock, Unlock, ArrowRight, Cloud, CloudOff, RefreshCw, AlertTriangle } from 'lucide-react';
 
 // --- CONFIGURATION ---
 const APP_PASSWORD = process.env.NEXT_PUBLIC_APP_PASSWORD || 'password';
@@ -9,9 +9,7 @@ const SESSION_KEY = 'todotxt_session_token';
 const DATA_KEY = 'todotxt_local_data';
 const TS_KEY = 'todotxt_timestamp';
 
-// --- Utilities & Components ---
-// (Reusing logic for brevity where possible, ensuring full file is runnable)
-
+// --- Utilities ---
 const REGEX = {
   priority: /^\(([A-Z])\)\s/,
   completed: /^x\s/,
@@ -82,6 +80,30 @@ const LoginScreen = ({ onLogin }) => {
   );
 };
 
+const ConflictModal = ({ serverDate, onKeepLocal, onLoadCloud }) => (
+  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 max-w-sm w-full shadow-2xl">
+      <div className="flex items-center gap-3 mb-4 text-amber-500">
+        <AlertTriangle size={24} />
+        <h3 className="text-lg font-bold text-white">Sync Conflict</h3>
+      </div>
+      <p className="text-neutral-400 text-sm mb-6 leading-relaxed">
+        A newer version exists in the cloud.<br/>
+        <span className="text-xs text-neutral-600 font-mono mt-2 block">Server Time: {new Date(serverDate).toLocaleString()}</span>
+      </p>
+      <div className="flex gap-3">
+        <button onClick={onKeepLocal} className="flex-1 px-4 py-3 bg-neutral-800 hover:bg-neutral-700 text-white rounded text-sm font-bold transition-colors">
+          Keep Local
+        </button>
+        <button onClick={onLoadCloud} className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm font-bold transition-colors">
+          Load Cloud
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+// ... [Highlighting Components kept same for brevity, essential for rendering] ...
 const HighlighterLine = ({ line, index, onToggle, isRawMode, isActiveLine, searchQuery }) => {
   if (!line) return <br />;
   if (isRawMode) return <div className="text-neutral-400"><HighlighterContent line={line} isRawMode={true} isActiveLine={true} searchQuery={searchQuery} /></div>;
@@ -89,7 +111,6 @@ const HighlighterLine = ({ line, index, onToggle, isRawMode, isActiveLine, searc
   if (REGEX.divider.test(line.trim())) {
     return <div className="flex items-center" style={{ height: '1.625em' }}><hr className="w-full border-neutral-800" /><span className="opacity-0 w-0 h-0 overflow-hidden absolute">{line}</span></div>;
   }
-  
   const isPending = REGEX.pendingTask.test(line);
   const isCompleted = REGEX.completed.test(line);
   const isPriority = REGEX.priority.test(line);
@@ -102,7 +123,6 @@ const HighlighterLine = ({ line, index, onToggle, isRawMode, isActiveLine, searc
       </div>
     );
   }
-
   if (isPending || isCompleted) {
     const content = line.slice(2);
     const Checkbox = (
@@ -152,6 +172,7 @@ const HighlighterContent = ({ line, isRawMode, isActiveLine, searchQuery }) => {
     }));
   return <>{parts}</>;
 };
+// ... [End of Highlighting Components] ...
 
 const SuggestionBar = ({ suggestions, activeIndex, onSelect }) => {
   if (!suggestions || suggestions.length === 0) return null;
@@ -192,7 +213,11 @@ export default function TodoTxtApp() {
   // App State
   const [text, setText] = useState("");
   const [lastSyncedTime, setLastSyncedTime] = useState(0); 
-  const [syncStatus, setSyncStatus] = useState('idle'); // idle, syncing, synced, error, conflict
+  const [syncStatus, setSyncStatus] = useState('idle'); 
+  
+  // Conflict State
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [pendingServerData, setPendingServerData] = useState(null);
 
   const [isRawMode, setIsRawMode] = useState(false);
   const [activeLineIndex, setActiveLineIndex] = useState(0);
@@ -212,14 +237,16 @@ export default function TodoTxtApp() {
     const token = localStorage.getItem(SESSION_KEY);
     if (token) setIsAuthenticated(true);
     
-    // Load local data
     const localData = localStorage.getItem(DATA_KEY);
     const localTS = localStorage.getItem(TS_KEY);
+    
     if (localData) {
       setText(localData);
       setLastSyncedTime(parseInt(localTS || '0'));
     } else {
+      // New device or empty cache
       setText("- Welcome to Todo.txt @home\n- Syncs automatically +feature\n");
+      setLastSyncedTime(0); // Important: 0 signals "I am new, please fetch from server"
     }
     
     setIsLoadingAuth(false);
@@ -228,21 +255,21 @@ export default function TodoTxtApp() {
   // --- BACKGROUND POLLING ---
   useEffect(() => {
     if (!isAuthenticated) return;
-
     const interval = setInterval(() => {
-      // Only poll if not currently typing/syncing
-      if (syncStatus !== 'syncing') {
-        performSync(text, lastSyncedTime, true); // True = background mode
+      // Don't poll if conflict modal is already open
+      if (syncStatus !== 'syncing' && !showConflictModal) {
+        performSync(text, lastSyncedTime, true); 
       }
-    }, 4000); // Poll every 4 seconds
-
+    }, 5000); 
     return () => clearInterval(interval);
-  }, [isAuthenticated, text, lastSyncedTime, syncStatus]);
+  }, [isAuthenticated, text, lastSyncedTime, syncStatus, showConflictModal]);
 
   const handleLogin = () => {
     localStorage.setItem(SESSION_KEY, 'active');
     setIsAuthenticated(true);
-    performSync(text, Date.now());
+    // On login, perform a sync using EXISTING timestamp. 
+    // If we are new (ts=0), this will naturally fetch.
+    performSync(text, lastSyncedTime);
   };
 
   const handleLogout = () => {
@@ -253,7 +280,6 @@ export default function TodoTxtApp() {
   // --- SYNC ENGINE ---
   
   const performSync = async (content, timestamp, isBackground = false) => {
-    // If background sync, don't show spinner to avoid distraction
     if (!isBackground) setSyncStatus('syncing');
 
     try {
@@ -275,14 +301,22 @@ export default function TodoTxtApp() {
       }
 
       if (data.status === 'conflict') {
-        // Server has newer data -> Update Local
-        setText(data.content);
-        setLastSyncedTime(data.timestamp);
-        localStorage.setItem(DATA_KEY, data.content);
-        localStorage.setItem(TS_KEY, data.timestamp.toString());
-        setSyncStatus('synced');
+        // Server has newer data
+        
+        // CASE 1: New Device (timestamp 0)
+        // Automatically accept server data without bothering user
+        if (timestamp === 0) {
+            applyServerData(data.content, data.timestamp);
+            return;
+        }
+
+        // CASE 2: Existing Device with potential local changes
+        // Show modal to let user decide
+        setPendingServerData({ content: data.content, timestamp: data.timestamp });
+        setShowConflictModal(true);
+        setSyncStatus('idle'); // Pause sync status
       } else {
-        // Synced successfully
+        // Success
         setSyncStatus('synced');
       }
     } catch (e) {
@@ -291,7 +325,30 @@ export default function TodoTxtApp() {
     }
   };
 
-  // Debounced Sync Trigger (For typing)
+  const applyServerData = (newContent, newTimestamp) => {
+    setText(newContent);
+    setLastSyncedTime(newTimestamp);
+    localStorage.setItem(DATA_KEY, newContent);
+    localStorage.setItem(TS_KEY, newTimestamp.toString());
+    setSyncStatus('synced');
+    setShowConflictModal(false);
+    setPendingServerData(null);
+  };
+
+  const handleKeepLocal = () => {
+    // User chose local. Force a push by updating timestamp to NOW.
+    setShowConflictModal(false);
+    setPendingServerData(null);
+    triggerSync(text); // This will generate a fresh timestamp > server
+  };
+
+  const handleLoadCloud = () => {
+    if (pendingServerData) {
+      applyServerData(pendingServerData.content, pendingServerData.timestamp);
+    }
+  };
+
+  // Debounced Sync Trigger
   const triggerSync = (newContent) => {
     const now = Date.now();
     localStorage.setItem(DATA_KEY, newContent);
@@ -307,7 +364,6 @@ export default function TodoTxtApp() {
   };
 
   // --- HANDLERS ---
-
   const updateActiveLine = (el) => {
     if (!el) return;
     const cursor = el.selectionStart;
@@ -336,6 +392,7 @@ export default function TodoTxtApp() {
     textareaRef.current?.focus();
   };
 
+  // ... [KeyDown, Suggestions, Scroll logic preserved exact same as previous to save space] ...
   const handleKeyDown = (e) => {
     if (suggestionState.isOpen) {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Tab' || e.key === 'Escape') {
@@ -345,7 +402,6 @@ export default function TodoTxtApp() {
         if (e.key === 'Escape') { setSuggestionState(p => ({...p, isOpen: false})); return;}
       }
     }
-
     const el = textareaRef.current;
     if (!el) return;
     const cursor = el.selectionStart;
@@ -366,14 +422,12 @@ export default function TodoTxtApp() {
          return;
       }
     }
-
     if (e.key === 'Enter') {
       if (REGEX.pendingTask.test(currentLine) || REGEX.completed.test(currentLine)) {
         e.preventDefault();
         const today = getTodayDate();
         let updatedLine = currentLine;
         if (!REGEX.date.test(currentLine) && currentLine.length > 3) updatedLine = `${currentLine} ${today}`;
-        
         lines[lineIndex] = updatedLine;
         lines.splice(lineIndex + 1, 0, '- '); 
         const newText = lines.join('\n');
@@ -402,7 +456,6 @@ export default function TodoTxtApp() {
     let end = cursor;
     while (end < val.length && !/\s/.test(val[end])) end++;
     const word = val.slice(start, end);
-    
     if (word.startsWith('+') || word.startsWith('@')) {
       const type = word[0];
       const query = word.slice(1);
@@ -443,6 +496,7 @@ export default function TodoTxtApp() {
     return () => { el?.removeEventListener('click', onInteract); el?.removeEventListener('keyup', onInteract); };
   }, [text, metadata, isRawMode]);
 
+  // --- RENDER ---
   if (isLoadingAuth) return <div className="min-h-screen bg-black" />;
   if (!isAuthenticated) return <LoginScreen onLogin={handleLogin} />;
 
@@ -457,7 +511,6 @@ export default function TodoTxtApp() {
             {syncStatus === 'error' && <CloudOff className="text-red-500" size={14} />}
           </div>
         </div>
-        
         <div className="flex items-center gap-3">
            <div className={`flex items-center transition-all duration-300 overflow-hidden ${showSearch ? 'w-48 sm:w-64 opacity-100' : 'w-0 opacity-0'}`}>
             <input ref={searchInputRef} type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-neutral-900 border border-neutral-800 text-sm text-white px-3 py-1.5 rounded-l-md outline-none focus:border-neutral-700" />
@@ -479,6 +532,14 @@ export default function TodoTxtApp() {
         {!isRawMode && (<SuggestionBar suggestions={suggestionState.isOpen ? suggestionState.list : null} activeIndex={suggestionState.activeIndex} onSelect={applySuggestion} />)}
         <GuideFooter />
       </main>
+
+      {showConflictModal && pendingServerData && (
+        <ConflictModal 
+          serverDate={pendingServerData.timestamp}
+          onKeepLocal={handleKeepLocal}
+          onLoadCloud={handleLoadCloud}
+        />
+      )}
     </div>
   );
 }

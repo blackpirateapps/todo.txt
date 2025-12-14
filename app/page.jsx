@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, X, Lock, Unlock, ArrowRight, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 
 // --- CONFIGURATION ---
@@ -9,7 +9,9 @@ const SESSION_KEY = 'todotxt_session_token';
 const DATA_KEY = 'todotxt_local_data';
 const TS_KEY = 'todotxt_timestamp';
 
-// --- Utilities ---
+// --- Utilities & Components ---
+// (Reusing logic for brevity where possible, ensuring full file is runnable)
+
 const REGEX = {
   priority: /^\(([A-Z])\)\s/,
   completed: /^x\s/,
@@ -79,10 +81,6 @@ const LoginScreen = ({ onLogin }) => {
     </div>
   );
 };
-
-// ... [Keep SuggestionBar, HighlighterLine, HighlighterContent, GuideFooter from previous artifact] ...
-// For brevity in file generation, assume these component definitions exist here exactly as in the previous React artifact.
-// I will include the critical HighlighterLine and Content below for the file to be functional.
 
 const HighlighterLine = ({ line, index, onToggle, isRawMode, isActiveLine, searchQuery }) => {
   if (!line) return <br />;
@@ -193,7 +191,7 @@ export default function TodoTxtApp() {
   
   // App State
   const [text, setText] = useState("");
-  const [lastSyncedTime, setLastSyncedTime] = useState(0); // Timestamp of last content update
+  const [lastSyncedTime, setLastSyncedTime] = useState(0); 
   const [syncStatus, setSyncStatus] = useState('idle'); // idle, syncing, synced, error, conflict
 
   const [isRawMode, setIsRawMode] = useState(false);
@@ -221,17 +219,29 @@ export default function TodoTxtApp() {
       setText(localData);
       setLastSyncedTime(parseInt(localTS || '0'));
     } else {
-      // Default template if nothing saved
       setText("- Welcome to Todo.txt @home\n- Syncs automatically +feature\n");
     }
     
     setIsLoadingAuth(false);
   }, []);
 
+  // --- BACKGROUND POLLING ---
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const interval = setInterval(() => {
+      // Only poll if not currently typing/syncing
+      if (syncStatus !== 'syncing') {
+        performSync(text, lastSyncedTime, true); // True = background mode
+      }
+    }, 4000); // Poll every 4 seconds
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, text, lastSyncedTime, syncStatus]);
+
   const handleLogin = () => {
     localStorage.setItem(SESSION_KEY, 'active');
     setIsAuthenticated(true);
-    // Trigger an immediate sync after login
     performSync(text, Date.now());
   };
 
@@ -242,8 +252,10 @@ export default function TodoTxtApp() {
 
   // --- SYNC ENGINE ---
   
-  const performSync = async (content, timestamp) => {
-    setSyncStatus('syncing');
+  const performSync = async (content, timestamp, isBackground = false) => {
+    // If background sync, don't show spinner to avoid distraction
+    if (!isBackground) setSyncStatus('syncing');
+
     try {
       const res = await fetch('/api/sync', {
         method: 'POST',
@@ -258,21 +270,19 @@ export default function TodoTxtApp() {
       const data = await res.json();
 
       if (res.status === 401) {
-        setSyncStatus('error'); // Auth failed
+        setSyncStatus('error');
         return;
       }
 
       if (data.status === 'conflict') {
-        // Server has newer data
+        // Server has newer data -> Update Local
         setText(data.content);
         setLastSyncedTime(data.timestamp);
         localStorage.setItem(DATA_KEY, data.content);
         localStorage.setItem(TS_KEY, data.timestamp.toString());
         setSyncStatus('synced');
-        // Notify user visibly? 
-        console.log("Updated from server");
       } else {
-        // Write successful
+        // Synced successfully
         setSyncStatus('synced');
       }
     } catch (e) {
@@ -281,22 +291,22 @@ export default function TodoTxtApp() {
     }
   };
 
-  // Debounced Sync Trigger
+  // Debounced Sync Trigger (For typing)
   const triggerSync = (newContent) => {
     const now = Date.now();
     localStorage.setItem(DATA_KEY, newContent);
     localStorage.setItem(TS_KEY, now.toString());
     setLastSyncedTime(now);
-    setSyncStatus('idle'); // pending
+    setSyncStatus('idle');
 
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     
     syncTimeoutRef.current = setTimeout(() => {
       performSync(newContent, now);
-    }, 2000); // Wait 2 seconds after typing stops
+    }, 2000); 
   };
 
-  // --- HANDLERS (Same as before but wrapping setText with triggerSync) ---
+  // --- HANDLERS ---
 
   const updateActiveLine = (el) => {
     if (!el) return;
@@ -308,7 +318,7 @@ export default function TodoTxtApp() {
   const handleChange = (e) => {
     const newVal = e.target.value;
     setText(newVal);
-    triggerSync(newVal); // <--- SYNC HOOK
+    triggerSync(newVal); 
     updateActiveLine(e.target);
   };
 
@@ -322,17 +332,13 @@ export default function TodoTxtApp() {
     }
     const newText = lines.join('\n');
     setText(newText);
-    triggerSync(newText); // <--- SYNC HOOK
+    triggerSync(newText);
     textareaRef.current?.focus();
   };
 
   const handleKeyDown = (e) => {
-    // ... [Same logic as previous artifact for Auto-Complete & Enter] ...
-    // COPY PASTE previous logic here, just ensure setText(newText) is followed by triggerSync(newText)
-    
     if (suggestionState.isOpen) {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Tab' || e.key === 'Escape') {
-        // ... navigation logic ...
         if (e.key === 'ArrowDown') { e.preventDefault(); setSuggestionState(p => ({...p, activeIndex: (p.activeIndex + 1) % p.list.length})); return;}
         if (e.key === 'ArrowUp') { e.preventDefault(); setSuggestionState(p => ({...p, activeIndex: (p.activeIndex - 1 + p.list.length) % p.list.length})); return;}
         if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); applySuggestion(suggestionState.list[suggestionState.activeIndex]); return;}
@@ -437,7 +443,6 @@ export default function TodoTxtApp() {
     return () => { el?.removeEventListener('click', onInteract); el?.removeEventListener('keyup', onInteract); };
   }, [text, metadata, isRawMode]);
 
-  // --- RENDER ---
   if (isLoadingAuth) return <div className="min-h-screen bg-black" />;
   if (!isAuthenticated) return <LoginScreen onLogin={handleLogin} />;
 
@@ -446,7 +451,6 @@ export default function TodoTxtApp() {
       <header className="px-6 py-4 bg-black border-b border-neutral-800 flex items-center justify-between shrink-0 sticky top-0 z-30 shadow-md">
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-bold text-white tracking-tight">todo.txt</h1>
-          {/* SYNC INDICATOR */}
           <div className="flex items-center gap-2 text-xs font-mono">
             {syncStatus === 'syncing' && <RefreshCw className="animate-spin text-blue-500" size={14} />}
             {syncStatus === 'synced' && <Cloud className="text-green-500" size={14} />}

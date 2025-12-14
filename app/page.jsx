@@ -22,6 +22,29 @@ const REGEX = {
 
 const getTodayDate = () => new Date().toISOString().split('T')[0];
 
+const getRelativeDates = () => {
+  const today = new Date();
+  
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  
+  const nextWeek = new Date(today);
+  nextWeek.setDate(today.getDate() + (8 - today.getDay())); // Next Monday
+  
+  const nextFriday = new Date(today);
+  nextFriday.setDate(today.getDate() + (5 + 7 - today.getDay()) % 7); // Upcoming Friday (or today if friday)
+  if (nextFriday <= today) nextFriday.setDate(nextFriday.getDate() + 7);
+
+  const formatDate = (d) => d.toISOString().split('T')[0];
+
+  return [
+    { type: 'DATE', label: 'Today', value: formatDate(today) },
+    { type: 'DATE', label: 'Tomorrow', value: formatDate(tomorrow) },
+    { type: 'DATE', label: 'Next Week', value: formatDate(nextWeek) },
+    { type: 'DATE', label: 'Friday', value: formatDate(nextFriday) },
+  ];
+};
+
 const extractMetadata = (text) => {
   const projects = new Set();
   const contexts = new Set();
@@ -208,7 +231,7 @@ const HistoryModal = ({ onClose, onRestore }) => {
 };
 
 
-// --- HIGHLIGHTER COMPONENTS (Modified for Click-to-Filter) ---
+// --- HIGHLIGHTER COMPONENTS ---
 
 const HighlighterLine = ({ line, index, onToggle, isRawMode, isActiveLine, searchQuery, onTagClick }) => {
   if (!line) return <br />;
@@ -273,7 +296,7 @@ const HighlighterContent = ({ line, isRawMode, isActiveLine, searchQuery, onTagC
         return <span key={key} className={`text-neutral-600 select-none ${baseStyle}`}>{word}</span>;
       }
       
-      // Clickable Tags: Add pointer-events-auto to capture clicks in the overlay
+      // Clickable Tags
       if (word.startsWith('+')) return <span key={key} onClick={(e) => { e.stopPropagation(); onTagClick && onTagClick(word); }} className={`text-green-500 ${baseStyle} cursor-pointer hover:underline pointer-events-auto relative z-30`}>{word}</span>;
       if (word.startsWith('@')) return <span key={key} onClick={(e) => { e.stopPropagation(); onTagClick && onTagClick(word); }} className={`text-cyan-500 ${baseStyle} cursor-pointer hover:underline pointer-events-auto relative z-30`}>{word}</span>;
       
@@ -293,8 +316,10 @@ const SuggestionBar = ({ suggestions, activeIndex, onSelect }) => {
         </div>
         <div className="max-h-48 overflow-y-auto p-1 bg-black">
           {suggestions.map((item, idx) => (
-            <button key={item.value + idx} onClick={() => onSelect(item)} className={`w-full text-left px-3 py-2 text-sm font-mono rounded-md transition-colors ${idx === activeIndex ? 'bg-neutral-800 text-blue-400' : 'hover:bg-neutral-900 text-neutral-400'}`}>
-              <span className="opacity-50 mr-1 text-neutral-600">{item.type}</span>{item.value}
+            <button key={item.label + idx} onClick={() => onSelect(item)} className={`w-full text-left px-3 py-2 text-sm font-mono rounded-md transition-colors ${idx === activeIndex ? 'bg-neutral-800 text-blue-400' : 'hover:bg-neutral-900 text-neutral-400'}`}>
+              <span className="opacity-50 mr-2 text-neutral-600 text-xs tracking-wider">{item.type}</span>
+              <span className="text-white font-medium">{item.label || item.value}</span>
+              {item.label && <span className="ml-2 text-neutral-600 opacity-50 text-xs">{item.value}</span>}
             </button>
           ))}
         </div>
@@ -308,7 +333,7 @@ const GuideFooter = () => (
      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
        <div><h3 className="font-bold text-neutral-400 mb-2">Shortcuts</h3><ul className="space-y-1 text-xs"><li>Enter: New Task</li><li>Backspace: Delete Task</li></ul></div>
        <div><h3 className="font-bold text-neutral-400 mb-2">Syntax</h3><ul className="space-y-1 text-xs"><li>- Task, x Done, (A) Prio</li><li>+Project, @Context</li></ul></div>
-       <div><h3 className="font-bold text-neutral-400 mb-2">Sync</h3><ul className="space-y-1 text-xs"><li>Auto-syncs to cloud</li><li>Works offline</li></ul></div>
+       <div><h3 className="font-bold text-neutral-400 mb-2">Autofill</h3><ul className="space-y-1 text-xs"><li>Type <code className="text-blue-500 font-bold">//</code> for dates</li><li>Type <code className="text-green-500">+</code> or <code className="text-cyan-500">@</code> for tags</li></ul></div>
      </div>
   </footer>
 );
@@ -352,7 +377,7 @@ export default function TodoTxtApp() {
 
   const handleRestoreVersion = (content) => {
     setText(content);
-    triggerSync(content); // Trigger a sync which will push this as the "latest" version
+    triggerSync(content); 
     setShowHistoryModal(false);
   };
 
@@ -572,13 +597,22 @@ export default function TodoTxtApp() {
     let end = cursor;
     while (end < val.length && !/\s/.test(val[end])) end++;
     const word = val.slice(start, end);
+
+    // DATE SHORTCUTS CHANGED TO //
+    if (word.startsWith('//')) {
+      const dates = getRelativeDates();
+      setSuggestionState({ isOpen: true, list: dates, activeIndex: 0, cursorWordStart: start, cursorWordEnd: end });
+      return;
+    }
+
+    // PROJECT & CONTEXT
     if (word.startsWith('+') || word.startsWith('@')) {
-      const type = word[0];
+      const type = word[0] === '+' ? 'PROJECT' : 'CONTEXT';
       const query = word.slice(1);
-      const source = type === '+' ? metadata.projects : metadata.contexts;
-      const filtered = source.filter(item => item.toLowerCase().includes(query.toLowerCase()) && item !== query).map(item => ({ type, value: item }));
+      const source = type === 'PROJECT' ? metadata.projects : metadata.contexts;
+      const filtered = source.filter(item => item.toLowerCase().includes(query.toLowerCase()) && item !== query).map(item => ({ type, label: null, value: item }));
       if (filtered.length > 0) {
-        setSuggestionState({ isOpen: true, list: filtered, activeIndex: 0, type, query, cursorWordStart: start, cursorWordEnd: end });
+        setSuggestionState({ isOpen: true, list: filtered, activeIndex: 0, cursorWordStart: start, cursorWordEnd: end });
         return;
       }
     }
@@ -588,7 +622,17 @@ export default function TodoTxtApp() {
   const applySuggestion = (suggestion) => {
     const before = text.slice(0, suggestionState.cursorWordStart);
     const after = text.slice(suggestionState.cursorWordEnd);
-    const inserted = `${suggestion.type}${suggestion.value} `;
+    
+    // Replacement Logic
+    let inserted = "";
+    if (suggestion.type === 'DATE') {
+      inserted = `${suggestion.value} `;
+    } else if (suggestion.type === 'PROJECT') {
+      inserted = `+${suggestion.value} `;
+    } else if (suggestion.type === 'CONTEXT') {
+      inserted = `@${suggestion.value} `;
+    }
+
     const newText = before + inserted + after;
     setText(newText);
     triggerSync(newText);

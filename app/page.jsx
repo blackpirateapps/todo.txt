@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, X, Lock, Unlock, ArrowRight, Cloud, CloudOff, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Search, X, Lock, Unlock, ArrowRight, Cloud, CloudOff, RefreshCw, AlertTriangle, History, RotateCcw, Calendar } from 'lucide-react';
 
 // --- CONFIGURATION ---
 const APP_PASSWORD = process.env.NEXT_PUBLIC_APP_PASSWORD || 'password';
@@ -103,7 +103,114 @@ const ConflictModal = ({ serverDate, onKeepLocal, onLoadCloud }) => (
   </div>
 );
 
-const HighlighterLine = ({ line, index, onToggle, isRawMode, isActiveLine, searchQuery }) => {
+// --- HISTORY MODAL (Time Machine) ---
+const HistoryModal = ({ onClose, onRestore }) => {
+  const [versions, setVersions] = useState([]);
+  const [selectedVersion, setSelectedVersion] = useState(null); // { id, content, created_at }
+  const [loading, setLoading] = useState(true);
+  const [loadingContent, setLoadingContent] = useState(false);
+
+  useEffect(() => {
+    const fetchList = async () => {
+      try {
+        const res = await fetch('/api/history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: APP_PASSWORD, action: 'list' })
+        });
+        const data = await res.json();
+        setVersions(data.history || []);
+      } catch (e) {
+        console.error("Failed to fetch history list", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchList();
+  }, []);
+
+  const handleSelectVersion = async (version) => {
+    setLoadingContent(true);
+    setSelectedVersion({ ...version, content: 'Loading...' }); // Optimistic set
+    try {
+      const res = await fetch('/api/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: APP_PASSWORD, action: 'get', id: version.id })
+      });
+      const data = await res.json();
+      setSelectedVersion({ ...version, content: data.content });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingContent(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
+      <div className="bg-neutral-900 border border-neutral-800 rounded-xl w-full max-w-4xl h-[80vh] flex overflow-hidden shadow-2xl flex-col md:flex-row">
+        
+        {/* Left: List */}
+        <div className="w-full md:w-1/3 border-b md:border-b-0 md:border-r border-neutral-800 flex flex-col bg-black/50">
+          <div className="p-4 border-b border-neutral-800 flex justify-between items-center">
+            <h3 className="font-bold text-white flex items-center gap-2"><History size={16}/> Time Machine</h3>
+            <button onClick={onClose} className="md:hidden p-1 hover:bg-neutral-800 rounded"><X size={16}/></button>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {loading && <div className="p-4 text-center text-neutral-500 text-sm">Loading history...</div>}
+            {!loading && versions.length === 0 && <div className="p-4 text-center text-neutral-500 text-sm">No history found.</div>}
+            {versions.map(v => (
+              <button 
+                key={v.id}
+                onClick={() => handleSelectVersion(v)}
+                className={`w-full text-left p-4 border-b border-neutral-800/50 hover:bg-neutral-800 transition-colors ${selectedVersion?.id === v.id ? 'bg-neutral-800 border-l-2 border-l-blue-500' : 'text-neutral-400'}`}
+              >
+                <div className="text-xs font-mono text-neutral-500 mb-1">{new Date(v.created_at).toLocaleDateString()}</div>
+                <div className="text-sm font-bold text-neutral-200">{new Date(v.created_at).toLocaleTimeString()}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Right: Preview */}
+        <div className="flex-1 flex flex-col bg-neutral-900 relative">
+           <div className="p-4 border-b border-neutral-800 flex justify-between items-center bg-neutral-900">
+             <span className="text-xs font-mono text-neutral-500 uppercase tracking-widest">Preview</span>
+             <button onClick={onClose} className="hidden md:block p-1 hover:bg-neutral-800 rounded text-neutral-400 hover:text-white"><X size={18}/></button>
+           </div>
+           
+           <div className="flex-1 overflow-y-auto p-6 font-mono text-sm text-neutral-300 whitespace-pre-wrap">
+              {loadingContent ? (
+                <div className="flex items-center justify-center h-full text-neutral-500 gap-2"><RefreshCw className="animate-spin" size={16}/> Loading content...</div>
+              ) : selectedVersion ? (
+                selectedVersion.content
+              ) : (
+                <div className="flex items-center justify-center h-full text-neutral-600">Select a version to preview</div>
+              )}
+           </div>
+
+           {selectedVersion && !loadingContent && (
+             <div className="p-4 border-t border-neutral-800 bg-black/20 flex justify-end gap-3">
+               <button onClick={onClose} className="px-4 py-2 text-sm text-neutral-400 hover:text-white transition-colors">Cancel</button>
+               <button 
+                 onClick={() => onRestore(selectedVersion.content)}
+                 className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm font-bold shadow-lg flex items-center gap-2"
+               >
+                 <RotateCcw size={16} /> Restore this version
+               </button>
+             </div>
+           )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+// --- HIGHLIGHTER COMPONENTS (Modified for Click-to-Filter) ---
+
+const HighlighterLine = ({ line, index, onToggle, isRawMode, isActiveLine, searchQuery, onTagClick }) => {
   if (!line) return <br />;
   if (isRawMode) return <div className="text-neutral-400"><HighlighterContent line={line} isRawMode={true} isActiveLine={true} searchQuery={searchQuery} /></div>;
   
@@ -118,7 +225,7 @@ const HighlighterLine = ({ line, index, onToggle, isRawMode, isActiveLine, searc
   if (isNote) {
     return (
       <div className="bg-yellow-900/10 -mx-2 px-2 rounded-sm text-yellow-100/80 border-l-2 border-yellow-700/40">
-        <HighlighterContent line={line} isRawMode={false} isActiveLine={isActiveLine} searchQuery={searchQuery} />
+        <HighlighterContent line={line} isRawMode={false} isActiveLine={isActiveLine} searchQuery={searchQuery} onTagClick={onTagClick} />
       </div>
     );
   }
@@ -132,14 +239,14 @@ const HighlighterLine = ({ line, index, onToggle, isRawMode, isActiveLine, searc
     );
     return (
       <div className={`relative ${isCompleted ? 'text-neutral-600 line-through decoration-neutral-700' : 'text-neutral-300'}`}>
-        {Checkbox}<HighlighterContent line={content} isRawMode={false} isActiveLine={isActiveLine} searchQuery={searchQuery} />
+        {Checkbox}<HighlighterContent line={content} isRawMode={false} isActiveLine={isActiveLine} searchQuery={searchQuery} onTagClick={onTagClick} />
       </div>
     );
   }
-  return <div className="text-neutral-300"><HighlighterContent line={line} isRawMode={false} isActiveLine={isActiveLine} searchQuery={searchQuery} /></div>;
+  return <div className="text-neutral-300"><HighlighterContent line={line} isRawMode={false} isActiveLine={isActiveLine} searchQuery={searchQuery} onTagClick={onTagClick} /></div>;
 };
 
-const HighlighterContent = ({ line, isRawMode, isActiveLine, searchQuery }) => {
+const HighlighterContent = ({ line, isRawMode, isActiveLine, searchQuery, onTagClick }) => {
   if (!line) return null;
   let parts = [];
   const priorityMatch = line.match(REGEX.priority);
@@ -159,13 +266,17 @@ const HighlighterContent = ({ line, isRawMode, isActiveLine, searchQuery }) => {
       const key = `w-${i}`;
       const isSearchMatch = searchQuery && word.toLowerCase().includes(searchQuery.toLowerCase());
       const baseStyle = isSearchMatch ? "bg-yellow-400 text-black font-bold rounded-sm px-0.5" : "";
+      
       if (REGEX.date.test(word)) {
         if (isRawMode) return <span key={key} className={`text-purple-400 ${baseStyle}`}>{word}</span>;
         if (!isActiveLine && !isSearchMatch) return null;
         return <span key={key} className={`text-neutral-600 select-none ${baseStyle}`}>{word}</span>;
       }
-      if (word.startsWith('+')) return <span key={key} className={`text-green-500 ${baseStyle}`}>{word}</span>;
-      if (word.startsWith('@')) return <span key={key} className={`text-cyan-500 ${baseStyle}`}>{word}</span>;
+      
+      // Clickable Tags: Add pointer-events-auto to capture clicks in the overlay
+      if (word.startsWith('+')) return <span key={key} onClick={(e) => { e.stopPropagation(); onTagClick && onTagClick(word); }} className={`text-green-500 ${baseStyle} cursor-pointer hover:underline pointer-events-auto relative z-30`}>{word}</span>;
+      if (word.startsWith('@')) return <span key={key} onClick={(e) => { e.stopPropagation(); onTagClick && onTagClick(word); }} className={`text-cyan-500 ${baseStyle} cursor-pointer hover:underline pointer-events-auto relative z-30`}>{word}</span>;
+      
       if (word.includes(':')) return <span key={key} className={`text-neutral-500 italic ${baseStyle}`}>{word}</span>;
       return <span key={key} className={baseStyle}>{word}</span>;
     }));
@@ -213,8 +324,9 @@ export default function TodoTxtApp() {
   const [lastSyncedTime, setLastSyncedTime] = useState(0); 
   const [syncStatus, setSyncStatus] = useState('idle'); 
   
-  // Conflict State
+  // Modal States
   const [showConflictModal, setShowConflictModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [pendingServerData, setPendingServerData] = useState(null);
 
   const [isRawMode, setIsRawMode] = useState(false);
@@ -230,7 +342,21 @@ export default function TodoTxtApp() {
 
   const metadata = useMemo(() => extractMetadata(text), [text]);
 
-  // --- SYNC ENGINE (Defined before Effect so it can be called) ---
+  // --- ACTIONS ---
+  
+  const handleTagClick = (tag) => {
+    setSearchQuery(tag);
+    setShowSearch(true);
+    setTimeout(() => searchInputRef.current?.focus(), 100);
+  };
+
+  const handleRestoreVersion = (content) => {
+    setText(content);
+    triggerSync(content); // Trigger a sync which will push this as the "latest" version
+    setShowHistoryModal(false);
+  };
+
+  // --- SYNC ENGINE ---
   
   const performSync = async (content, timestamp, isBackground = false) => {
     if (!isBackground) setSyncStatus('syncing');
@@ -254,22 +380,14 @@ export default function TodoTxtApp() {
       }
 
       if (data.status === 'conflict') {
-        // Server has newer data
-        
-        // CASE 1: New Device or Clear Cache (timestamp 0)
-        // Automatically accept server data without bothering user
         if (timestamp === 0) {
             applyServerData(data.content, data.timestamp);
             return;
         }
-
-        // CASE 2: Existing Device with potential local changes
-        // Show modal to let user decide
         setPendingServerData({ content: data.content, timestamp: data.timestamp });
         setShowConflictModal(true);
-        setSyncStatus('idle'); // Pause sync status
+        setSyncStatus('idle');
       } else {
-        // Success
         setSyncStatus('synced');
       }
     } catch (e) {
@@ -289,7 +407,6 @@ export default function TodoTxtApp() {
   };
 
   const handleKeepLocal = () => {
-    // User chose local. Force a push by updating timestamp to NOW.
     setShowConflictModal(false);
     setPendingServerData(null);
     triggerSync(text); 
@@ -301,7 +418,6 @@ export default function TodoTxtApp() {
     }
   };
 
-  // Debounced Sync Trigger
   const triggerSync = (newContent) => {
     const now = Date.now();
     localStorage.setItem(DATA_KEY, newContent);
@@ -335,8 +451,6 @@ export default function TodoTxtApp() {
     
     if (token) {
       setIsAuthenticated(true);
-      // IMMEDIATE SYNC ON REFRESH
-      // Use variables directly to ensure we don't use stale state
       performSync(initialText, initialTS);
     }
     
@@ -348,13 +462,12 @@ export default function TodoTxtApp() {
   useEffect(() => {
     if (!isAuthenticated) return;
     const interval = setInterval(() => {
-      // Don't poll if conflict modal is already open
-      if (syncStatus !== 'syncing' && !showConflictModal) {
+      if (syncStatus !== 'syncing' && !showConflictModal && !showHistoryModal) {
         performSync(text, lastSyncedTime, true); 
       }
     }, 5000); 
     return () => clearInterval(interval);
-  }, [isAuthenticated, text, lastSyncedTime, syncStatus, showConflictModal]);
+  }, [isAuthenticated, text, lastSyncedTime, syncStatus, showConflictModal, showHistoryModal]);
 
   const handleLogin = () => {
     localStorage.setItem(SESSION_KEY, 'active');
@@ -519,6 +632,9 @@ export default function TodoTxtApp() {
             <button onClick={() => { setSearchQuery(''); setShowSearch(false); }} className="bg-neutral-800 px-2 py-1.5 rounded-r-md border border-l-0 border-neutral-800 hover:bg-neutral-700"><X size={16} /></button>
           </div>
           <button onClick={toggleSearch} className={`p-2 rounded-md hover:bg-neutral-900 ${showSearch ? 'bg-neutral-800 text-white' : 'text-neutral-500'}`}><Search size={18} /></button>
+          
+          <button onClick={() => setShowHistoryModal(true)} className="p-2 text-neutral-500 hover:text-white transition-colors" title="Time Machine"><History size={18} /></button>
+
           <button onClick={() => setIsRawMode(!isRawMode)} className={`px-3 py-1.5 text-xs font-bold rounded-md border transition-all ${isRawMode ? 'bg-neutral-200 text-black border-neutral-200' : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:border-neutral-700'}`}>{isRawMode ? 'RAW' : 'VISUAL'}</button>
           <button onClick={handleLogout} className="p-2 text-neutral-700 hover:text-red-500 transition-colors" title="Logout"><Unlock size={14} /></button>
         </div>
@@ -527,7 +643,7 @@ export default function TodoTxtApp() {
       <main className="flex-grow w-full max-w-4xl mx-auto mt-6 px-4 pb-20 flex flex-col">
         <div className="relative w-full min-h-[60vh] flex-grow bg-black rounded-lg border border-neutral-800 overflow-hidden">
           <div ref={highlighterRef} aria-hidden="true" className={`absolute inset-0 p-6 font-mono text-base leading-relaxed whitespace-pre-wrap break-words pointer-events-none z-20 overflow-hidden transition-opacity duration-200 ${isRawMode ? 'opacity-0' : 'opacity-100'}`} style={{ fontFamily: 'monospace' }}>
-            {text.split('\n').map((line, i) => (<HighlighterLine key={i} index={i} line={line} onToggle={handleToggleLine} isRawMode={isRawMode} isActiveLine={i === activeLineIndex} searchQuery={searchQuery} />))}
+            {text.split('\n').map((line, i) => (<HighlighterLine key={i} index={i} line={line} onToggle={handleToggleLine} isRawMode={isRawMode} isActiveLine={i === activeLineIndex} searchQuery={searchQuery} onTagClick={handleTagClick} />))}
           </div>
           <textarea ref={textareaRef} value={text} onChange={handleChange} onScroll={handleScroll} onKeyDown={handleKeyDown} spellCheck="false" className={`absolute inset-0 w-full h-full p-6 font-mono text-base leading-relaxed bg-transparent resize-none outline-none z-10 whitespace-pre-wrap break-words transition-colors duration-200 ${isRawMode ? 'text-neutral-300 caret-white' : 'text-transparent caret-blue-500'}`} style={{ fontFamily: 'monospace', WebkitTextFillColor: isRawMode ? 'inherit' : 'transparent', }} placeholder="Type your tasks here..." />
         </div>
@@ -540,6 +656,13 @@ export default function TodoTxtApp() {
           serverDate={pendingServerData.timestamp}
           onKeepLocal={handleKeepLocal}
           onLoadCloud={handleLoadCloud}
+        />
+      )}
+
+      {showHistoryModal && (
+        <HistoryModal 
+          onClose={() => setShowHistoryModal(false)}
+          onRestore={handleRestoreVersion}
         />
       )}
     </div>

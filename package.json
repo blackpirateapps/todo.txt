@@ -10,10 +10,10 @@
   },
   "dependencies": {
     "next": "latest",
-    "react": "latest",
-    "react-dom": "latest",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "@libsql/client": "latest",
-    "lucide-react": "^0.300.0",
+    "lucide-react": "latest",
     "@ducanh2912/next-pwa": "^10.0.0"
   },
   "devDependencies": {

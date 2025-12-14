@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, X, Lock, Unlock, ArrowRight, Cloud, CloudOff, RefreshCw, AlertTriangle, History, RotateCcw, Palette, Check, Menu, Plus, AtSign, Calendar, CheckSquare } from 'lucide-react';
+import { Search, X, Lock, Unlock, ArrowRight, Cloud, CloudOff, RefreshCw, AlertTriangle, History, RotateCcw, Palette, Check } from 'lucide-react';
 
-// --- THEME DEFINITIONS (Unchanged) ---
+// --- THEME DEFINITIONS ---
 const THEMES = {
   cyberpunk: {
     name: 'Cyberpunk',
@@ -15,10 +15,10 @@ const THEMES = {
       '--text-secondary': '#a3a3a3',
       '--text-dim': '#525252',
       '--border': '#262626',
-      '--color-prio': '#ef4444',
-      '--color-project': '#22c55e',
-      '--color-context': '#06b6d4',
-      '--color-date': '#a855f7',
+      '--color-prio': '#ef4444', // Red-500
+      '--color-project': '#22c55e', // Green-500
+      '--color-context': '#06b6d4', // Cyan-500
+      '--color-date': '#a855f7', // Purple-500
       '--bg-sticky': 'rgba(66, 32, 6, 0.3)',
       '--text-sticky': '#fde047',
     }
@@ -33,10 +33,10 @@ const THEMES = {
       '--text-secondary': '#586e75',
       '--text-dim': '#073642',
       '--border': '#073642',
-      '--color-prio': '#dc322f',
-      '--color-project': '#859900',
-      '--color-context': '#268bd2',
-      '--color-date': '#2aa198',
+      '--color-prio': '#dc322f', // Red
+      '--color-project': '#859900', // Green
+      '--color-context': '#268bd2', // Blue
+      '--color-date': '#2aa198', // Cyan
       '--bg-sticky': 'rgba(181, 137, 0, 0.1)',
       '--text-sticky': '#b58900',
     }
@@ -51,10 +51,10 @@ const THEMES = {
       '--text-secondary': '#a89984',
       '--text-dim': '#7c6f64',
       '--border': '#504945',
-      '--color-prio': '#fb4934',
-      '--color-project': '#b8bb26',
-      '--color-context': '#fabd2f',
-      '--color-date': '#8ec07c',
+      '--color-prio': '#fb4934', // Red
+      '--color-project': '#b8bb26', // Green
+      '--color-context': '#fabd2f', // Yellow
+      '--color-date': '#8ec07c', // Aqua
       '--bg-sticky': 'rgba(215, 153, 33, 0.1)',
       '--text-sticky': '#d79921',
     }
@@ -69,10 +69,10 @@ const THEMES = {
       '--text-secondary': '#6272a4',
       '--text-dim': '#44475a',
       '--border': '#44475a',
-      '--color-prio': '#ff5555',
-      '--color-project': '#50fa7b',
-      '--color-context': '#8be9fd',
-      '--color-date': '#bd93f9',
+      '--color-prio': '#ff5555', // Red
+      '--color-project': '#50fa7b', // Green
+      '--color-context': '#8be9fd', // Cyan
+      '--color-date': '#bd93f9', // Purple
       '--bg-sticky': 'rgba(241, 250, 140, 0.1)',
       '--text-sticky': '#f1fa8c',
     }
@@ -87,10 +87,10 @@ const THEMES = {
       '--text-secondary': '#a6adc8',
       '--text-dim': '#585b70',
       '--border': '#313244',
-      '--color-prio': '#f38ba8',
-      '--color-project': '#a6e3a1',
-      '--color-context': '#89b4fa',
-      '--color-date': '#f5c2e7',
+      '--color-prio': '#f38ba8', // Red
+      '--color-project': '#a6e3a1', // Green
+      '--color-context': '#89b4fa', // Blue
+      '--color-date': '#f5c2e7', // Pink
       '--bg-sticky': 'rgba(249, 226, 175, 0.1)',
       '--text-sticky': '#f9e2af',
     }
@@ -105,10 +105,10 @@ const THEMES = {
       '--text-secondary': '#525252',
       '--text-dim': '#d4d4d4',
       '--border': '#d4d4d4',
-      '--color-prio': '#dc2626',
-      '--color-project': '#16a34a',
-      '--color-context': '#0284c7',
-      '--color-date': '#9333ea',
+      '--color-prio': '#dc2626', // Red
+      '--color-project': '#16a34a', // Green
+      '--color-context': '#0284c7', // Blue
+      '--color-date': '#9333ea', // Purple
       '--bg-sticky': 'rgba(250, 204, 21, 0.1)',
       '--text-sticky': '#854d0e',
     }
@@ -137,11 +137,19 @@ const getTodayDate = () => new Date().toISOString().split('T')[0];
 
 const getRelativeDates = () => {
   const today = new Date();
-  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-  const nextWeek = new Date(today); nextWeek.setDate(today.getDate() + (8 - today.getDay())); 
-  const nextFriday = new Date(today); nextFriday.setDate(today.getDate() + (5 + 7 - today.getDay()) % 7);
+  
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  
+  const nextWeek = new Date(today);
+  nextWeek.setDate(today.getDate() + (8 - today.getDay())); // Next Monday
+  
+  const nextFriday = new Date(today);
+  nextFriday.setDate(today.getDate() + (5 + 7 - today.getDay()) % 7); // Upcoming Friday (or today if friday)
   if (nextFriday <= today) nextFriday.setDate(nextFriday.getDate() + 7);
+
   const formatDate = (d) => d.toISOString().split('T')[0];
+
   return [
     { type: 'DATE', label: 'Today', value: formatDate(today) },
     { type: 'DATE', label: 'Tomorrow', value: formatDate(tomorrow) },
@@ -184,7 +192,7 @@ const LoginScreen = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col items-center justify-center p-4 font-mono bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 font-mono bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
       <div className="w-full max-w-sm bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-8 shadow-2xl">
         <div className="flex justify-center mb-6 text-[var(--text-secondary)]">
           <Lock size={48} strokeWidth={1.5} />
@@ -197,7 +205,7 @@ const LoginScreen = ({ onLogin }) => {
             value={input}
             onChange={(e) => { setInput(e.target.value); setError(false); }}
             placeholder="Enter password..."
-            className={`w-full bg-[var(--bg-primary)] border ${error ? 'border-red-900 text-red-500' : 'border-[var(--border)] text-[var(--text-primary)]'} rounded px-4 py-3 outline-none focus:border-[var(--text-secondary)] transition-colors text-center tracking-widest text-base`}
+            className={`w-full bg-[var(--bg-primary)] border ${error ? 'border-red-900 text-red-500' : 'border-[var(--border)] text-[var(--text-primary)]'} rounded px-4 py-3 outline-none focus:border-[var(--text-secondary)] transition-colors text-center tracking-widest`}
           />
           <button type="submit" className="absolute right-2 top-2 bottom-2 aspect-square bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded flex items-center justify-center border border-[var(--border)]">
             <ArrowRight size={16} />
@@ -276,11 +284,13 @@ const HistoryModal = ({ onClose, onRestore }) => {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl w-full max-w-4xl h-[85vh] flex overflow-hidden shadow-2xl flex-col md:flex-row text-[var(--text-primary)]">
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl w-full max-w-4xl h-[80vh] flex overflow-hidden shadow-2xl flex-col md:flex-row text-[var(--text-primary)]">
+        
+        {/* Left: List */}
         <div className="w-full md:w-1/3 border-b md:border-b-0 md:border-r border-[var(--border)] flex flex-col bg-[var(--bg-primary)]">
           <div className="p-4 border-b border-[var(--border)] flex justify-between items-center">
             <h3 className="font-bold flex items-center gap-2"><History size={16}/> Time Machine</h3>
-            <button onClick={onClose} className="md:hidden p-2 -mr-2 text-[var(--text-secondary)]"><X size={20}/></button>
+            <button onClick={onClose} className="md:hidden p-1 hover:bg-[var(--bg-tertiary)] rounded"><X size={16}/></button>
           </div>
           <div className="flex-1 overflow-y-auto">
             {loading && <div className="p-4 text-center text-[var(--text-dim)] text-sm">Loading history...</div>}
@@ -297,12 +307,15 @@ const HistoryModal = ({ onClose, onRestore }) => {
             ))}
           </div>
         </div>
+
+        {/* Right: Preview */}
         <div className="flex-1 flex flex-col bg-[var(--bg-secondary)] relative">
            <div className="p-4 border-b border-[var(--border)] flex justify-between items-center bg-[var(--bg-secondary)]">
              <span className="text-xs font-mono text-[var(--text-dim)] uppercase tracking-widest">Preview</span>
              <button onClick={onClose} className="hidden md:block p-1 hover:bg-[var(--bg-tertiary)] rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)]"><X size={18}/></button>
            </div>
-           <div className="flex-1 overflow-y-auto p-4 md:p-6 font-mono text-sm whitespace-pre-wrap">
+           
+           <div className="flex-1 overflow-y-auto p-6 font-mono text-sm whitespace-pre-wrap">
               {loadingContent ? (
                 <div className="flex items-center justify-center h-full text-[var(--text-dim)] gap-2"><RefreshCw className="animate-spin" size={16}/> Loading content...</div>
               ) : selectedVersion ? (
@@ -311,11 +324,15 @@ const HistoryModal = ({ onClose, onRestore }) => {
                 <div className="flex items-center justify-center h-full text-[var(--text-dim)]">Select a version to preview</div>
               )}
            </div>
+
            {selectedVersion && !loadingContent && (
-             <div className="p-4 border-t border-[var(--border)] bg-[var(--bg-primary)] flex justify-end gap-3 safe-area-pb">
+             <div className="p-4 border-t border-[var(--border)] bg-[var(--bg-primary)] flex justify-end gap-3">
                <button onClick={onClose} className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">Cancel</button>
-               <button onClick={() => onRestore(selectedVersion.content)} className="px-6 py-2 bg-[var(--color-context)] hover:opacity-90 text-[var(--bg-primary)] rounded text-sm font-bold shadow-lg flex items-center gap-2 transition-all">
-                 <RotateCcw size={16} /> Restore
+               <button 
+                 onClick={() => onRestore(selectedVersion.content)}
+                 className="px-6 py-2 bg-[var(--color-context)] hover:opacity-90 text-[var(--bg-primary)] rounded text-sm font-bold shadow-lg flex items-center gap-2 transition-all"
+               >
+                 <RotateCcw size={16} /> Restore this version
                </button>
              </div>
            )}
@@ -342,30 +359,26 @@ const HighlighterLine = ({ line, index, onToggle, isRawMode, isActiveLine, searc
 
   if (isNote) {
     return (
-      <div className="bg-[var(--bg-sticky)] -mx-2 px-2 rounded-sm text-[var(--text-sticky)] border-l-2 border-[var(--text-sticky)] py-0.5 my-0.5">
+      <div className="bg-[var(--bg-sticky)] -mx-2 px-2 rounded-sm text-[var(--text-sticky)] border-l-2 border-[var(--text-sticky)]">
         <HighlighterContent line={line} isRawMode={false} isActiveLine={isActiveLine} searchQuery={searchQuery} onTagClick={onTagClick} />
       </div>
     );
   }
   if (isPending || isCompleted) {
     const content = line.slice(2);
-    // Increased touch target size for checkbox
     const Checkbox = (
-      <span className="inline-block relative align-middle mr-1" style={{ width: '2ch', height: '1.5em' }}>
-         <input type="checkbox" checked={isCompleted} onChange={() => onToggle(index)} className="absolute -top-1 -left-2 w-8 h-8 cursor-pointer z-20 pointer-events-auto accent-[var(--color-context)] rounded-sm opacity-0 md:opacity-60 md:w-4 md:h-4 md:top-1 md:left-0 hover:opacity-100" />
-         <span className={`flex items-center justify-center w-4 h-4 mt-1 border rounded-sm ${isCompleted ? 'bg-[var(--color-context)] border-[var(--color-context)]' : 'border-[var(--text-dim)]'}`}>
-            {isCompleted && <Check size={12} className="text-[var(--bg-primary)]" />}
-         </span>
-         <span className="opacity-0 select-none absolute top-0">{line.slice(0, 2)}</span>
+      <span className="inline-block relative align-middle" style={{ width: '2ch', height: '1.5em' }}>
+         <input type="checkbox" checked={isCompleted} onChange={() => onToggle(index)} className="absolute top-1 left-0 w-4 h-4 cursor-pointer z-20 pointer-events-auto accent-[var(--color-context)] rounded-sm opacity-60 hover:opacity-100" />
+         <span className="opacity-0 select-none">{line.slice(0, 2)}</span>
       </span>
     );
     return (
-      <div className={`relative leading-relaxed ${isCompleted ? 'text-[var(--text-dim)] line-through decoration-[var(--text-dim)]' : 'text-[var(--text-primary)]'}`}>
+      <div className={`relative ${isCompleted ? 'text-[var(--text-dim)] line-through decoration-[var(--text-dim)]' : 'text-[var(--text-primary)]'}`}>
         {Checkbox}<HighlighterContent line={content} isRawMode={false} isActiveLine={isActiveLine} searchQuery={searchQuery} onTagClick={onTagClick} />
       </div>
     );
   }
-  return <div className="text-[var(--text-primary)] py-0.5"><HighlighterContent line={line} isRawMode={false} isActiveLine={isActiveLine} searchQuery={searchQuery} onTagClick={onTagClick} /></div>;
+  return <div className="text-[var(--text-primary)]"><HighlighterContent line={line} isRawMode={false} isActiveLine={isActiveLine} searchQuery={searchQuery} onTagClick={onTagClick} /></div>;
 };
 
 const HighlighterContent = ({ line, isRawMode, isActiveLine, searchQuery, onTagClick }) => {
@@ -374,7 +387,9 @@ const HighlighterContent = ({ line, isRawMode, isActiveLine, searchQuery, onTagC
   const priorityMatch = line.match(REGEX.priority);
   let priorityEnd = 0;
   if (priorityMatch) {
-    parts.push(<span key="prio" className="text-[var(--color-prio)] font-bold">{priorityMatch[0]}</span>);
+    const pCode = priorityMatch[1];
+    let pClass = "text-[var(--color-prio)] font-bold";
+    parts.push(<span key="prio" className={pClass}>{priorityMatch[0]}</span>);
     priorityEnd = priorityMatch[0].length;
   }
   const remaining = line.slice(priorityEnd);
@@ -390,8 +405,9 @@ const HighlighterContent = ({ line, isRawMode, isActiveLine, searchQuery, onTagC
         return <span key={key} className={`text-[var(--text-dim)] select-none ${baseStyle}`}>{word}</span>;
       }
       
-      if (word.startsWith('+')) return <span key={key} onClick={(e) => { e.stopPropagation(); onTagClick && onTagClick(word); }} className={`text-[var(--color-project)] ${baseStyle} cursor-pointer hover:underline pointer-events-auto relative z-30 active:scale-110 inline-block transition-transform`}>{word}</span>;
-      if (word.startsWith('@')) return <span key={key} onClick={(e) => { e.stopPropagation(); onTagClick && onTagClick(word); }} className={`text-[var(--color-context)] ${baseStyle} cursor-pointer hover:underline pointer-events-auto relative z-30 active:scale-110 inline-block transition-transform`}>{word}</span>;
+      // Clickable Tags
+      if (word.startsWith('+')) return <span key={key} onClick={(e) => { e.stopPropagation(); onTagClick && onTagClick(word); }} className={`text-[var(--color-project)] ${baseStyle} cursor-pointer hover:underline pointer-events-auto relative z-30`}>{word}</span>;
+      if (word.startsWith('@')) return <span key={key} onClick={(e) => { e.stopPropagation(); onTagClick && onTagClick(word); }} className={`text-[var(--color-context)] ${baseStyle} cursor-pointer hover:underline pointer-events-auto relative z-30`}>{word}</span>;
       
       if (word.includes(':')) return <span key={key} className={`text-[var(--text-dim)] italic ${baseStyle}`}>{word}</span>;
       return <span key={key} className={baseStyle}>{word}</span>;
@@ -402,59 +418,61 @@ const HighlighterContent = ({ line, isRawMode, isActiveLine, searchQuery, onTagC
 const SuggestionBar = ({ suggestions, activeIndex, onSelect }) => {
   if (!suggestions || suggestions.length === 0) return null;
   return (
-    <div className="w-full bg-[var(--bg-secondary)] border-t border-[var(--border)] shadow-2xl flex flex-col max-h-40 overflow-y-auto">
-      <div className="bg-[var(--bg-tertiary)] px-3 py-1 text-[10px] font-semibold text-[var(--text-secondary)] border-b border-[var(--border)] uppercase tracking-wider sticky top-0">
-        Suggestions
-      </div>
-      <div className="flex flex-col">
-        {suggestions.map((item, idx) => (
-          <button key={item.label + idx} onClick={(e) => { e.preventDefault(); onSelect(item); }} className={`w-full text-left px-4 py-3 text-sm font-mono border-b border-[var(--border)] last:border-0 flex items-center gap-2 transition-colors ${idx === activeIndex ? 'bg-[var(--bg-primary)] text-[var(--color-context)]' : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'}`}>
-            <span className="opacity-50 text-[var(--text-dim)] text-[10px] uppercase w-8">{item.type.substr(0,4)}</span>
-            <span className="text-[var(--text-primary)] font-medium truncate flex-1">{item.label || item.value}</span>
-          </button>
-        ))}
+    <div className="fixed bottom-10 left-0 right-0 mx-auto w-full max-w-2xl px-4 z-50">
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border)] shadow-2xl rounded-lg overflow-hidden flex flex-col">
+        <div className="bg-[var(--bg-tertiary)] px-3 py-1 text-xs font-semibold text-[var(--text-secondary)] border-b border-[var(--border)] flex justify-between">
+          <span>SUGGESTIONS</span><span className="hidden sm:inline">Tab to select</span>
+        </div>
+        <div className="max-h-48 overflow-y-auto p-1 bg-[var(--bg-secondary)]">
+          {suggestions.map((item, idx) => (
+            <button key={item.label + idx} onClick={() => onSelect(item)} className={`w-full text-left px-3 py-2 text-sm font-mono rounded-md transition-colors ${idx === activeIndex ? 'bg-[var(--bg-primary)] text-[var(--color-context)]' : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'}`}>
+              <span className="opacity-50 mr-2 text-[var(--text-dim)] text-xs tracking-wider">{item.type}</span>
+              <span className="text-[var(--text-primary)] font-medium">{item.label || item.value}</span>
+              {item.label && <span className="ml-2 text-[var(--text-dim)] opacity-50 text-xs">{item.value}</span>}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
 };
 
-const MobileToolbar = ({ onInsert, onDismiss, showKeyboardToggle }) => (
-  <div className="flex items-center justify-between px-2 py-2 bg-[var(--bg-secondary)] border-t border-[var(--border)] overflow-x-auto no-scrollbar gap-2 safe-area-pb">
-    <div className="flex gap-2">
-      <button onClick={() => onInsert('- ')} className="p-2 bg-[var(--bg-primary)] rounded border border-[var(--border)] text-[var(--text-primary)] active:bg-[var(--color-context)] active:text-white" title="Task"><CheckSquare size={18}/></button>
-      <button onClick={() => onInsert('+')} className="p-2 bg-[var(--bg-primary)] rounded border border-[var(--border)] text-[var(--color-project)] font-bold font-mono active:bg-[var(--color-project)] active:text-black">+Proj</button>
-      <button onClick={() => onInsert('@')} className="p-2 bg-[var(--bg-primary)] rounded border border-[var(--border)] text-[var(--color-context)] font-bold font-mono active:bg-[var(--color-context)] active:text-black">@Ctx</button>
-      <button onClick={() => onInsert('//')} className="p-2 bg-[var(--bg-primary)] rounded border border-[var(--border)] text-[var(--color-date)] font-bold font-mono active:bg-[var(--color-date)] active:text-black"><Calendar size={18}/></button>
-      <button onClick={() => onInsert('(A) ')} className="p-2 bg-[var(--bg-primary)] rounded border border-[var(--border)] text-[var(--color-prio)] font-bold font-mono active:bg-[var(--color-prio)] active:text-white">Prio</button>
-    </div>
-    <button onClick={onDismiss} className="p-2 text-[var(--text-dim)] opacity-50"><X size={18}/></button>
-  </div>
+const GuideFooter = () => (
+  <footer className="mt-8 mb-4 border-t border-[var(--border)] pt-6 px-2 text-sm text-[var(--text-secondary)]">
+     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+       <div><h3 className="font-bold text-[var(--text-primary)] mb-2">Shortcuts</h3><ul className="space-y-1 text-xs"><li>Enter: New Task</li><li>Backspace: Delete Task</li></ul></div>
+       <div><h3 className="font-bold text-[var(--text-primary)] mb-2">Syntax</h3><ul className="space-y-1 text-xs"><li>- Task, x Done, (A) Prio</li><li>+Project, @Context</li></ul></div>
+       <div><h3 className="font-bold text-[var(--text-primary)] mb-2">Autofill</h3><ul className="space-y-1 text-xs"><li>Type <code className="text-[var(--color-context)] font-bold">//</code> for dates</li><li>Type <code className="text-[var(--color-project)]">+</code> or <code className="text-[var(--color-context)]">@</code> for tags</li></ul></div>
+     </div>
+  </footer>
 );
 
-const MenuDropdown = ({ currentTheme, onThemeSelect, isRaw, onToggleRaw, onLogout }) => {
+const ThemeSelector = ({ currentTheme, onSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <div className="relative">
-      <button onClick={() => setIsOpen(!isOpen)} className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded active:bg-[var(--bg-secondary)]"><Menu size={20} /></button>
+      <button 
+        onClick={() => setIsOpen(!isOpen)} 
+        className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors rounded hover:bg-[var(--bg-secondary)]"
+        title="Change Theme"
+      >
+        <Palette size={18} />
+      </button>
+      
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setIsOpen(false)}></div>
-          <div className="absolute right-0 top-12 w-56 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-2xl z-50 overflow-hidden flex flex-col py-1">
-             <div className="px-3 py-2 text-xs font-bold text-[var(--text-dim)] uppercase">Display</div>
-             <button onClick={() => { onToggleRaw(); setIsOpen(false); }} className="w-full text-left px-4 py-3 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] flex items-center justify-between">
-               <span>Raw Mode</span>{isRaw && <Check size={14} className="text-[var(--color-project)]" />}
-             </button>
-             <div className="h-px bg-[var(--border)] my-1"></div>
-             <div className="px-3 py-2 text-xs font-bold text-[var(--text-dim)] uppercase">Theme</div>
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
+          <div className="absolute right-0 top-10 w-48 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl z-50 overflow-hidden py-1">
              {Object.entries(THEMES).map(([key, theme]) => (
-               <button key={key} onClick={() => { onThemeSelect(key); setIsOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] flex items-center justify-between">
-                 <span>{theme.name}</span>{currentTheme === key && <Check size={14} className="text-[var(--color-project)]" />}
+               <button
+                 key={key}
+                 onClick={() => { onSelect(key); setIsOpen(false); }}
+                 className="w-full text-left px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] flex items-center justify-between"
+               >
+                 <span>{theme.name}</span>
+                 {currentTheme === key && <Check size={14} className="text-[var(--color-project)]" />}
                </button>
              ))}
-             <div className="h-px bg-[var(--border)] my-1"></div>
-             <button onClick={onLogout} className="w-full text-left px-4 py-3 text-sm text-[var(--color-prio)] hover:bg-[var(--bg-tertiary)] flex items-center gap-2">
-               <Unlock size={14} /> Logout
-             </button>
           </div>
         </>
       )}
@@ -512,43 +530,80 @@ export default function TodoTxtApp() {
     localStorage.setItem(THEME_KEY, themeKey);
   };
 
-  // --- SYNC ENGINE (Unchanged Logic) ---
+  // --- SYNC ENGINE ---
+  
   const performSync = async (content, timestamp, isBackground = false) => {
     if (!isBackground) setSyncStatus('syncing');
+
     try {
       const res = await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: APP_PASSWORD, content: content, clientTimestamp: timestamp })
+        body: JSON.stringify({
+          password: APP_PASSWORD,
+          content: content,
+          clientTimestamp: timestamp
+        })
       });
+
       const data = await res.json();
-      if (res.status === 401) { setSyncStatus('error'); return; }
+
+      if (res.status === 401) {
+        setSyncStatus('error');
+        return;
+      }
+
       if (data.status === 'conflict') {
-        if (timestamp === 0) { applyServerData(data.content, data.timestamp); return; }
+        if (timestamp === 0) {
+            applyServerData(data.content, data.timestamp);
+            return;
+        }
         setPendingServerData({ content: data.content, timestamp: data.timestamp });
         setShowConflictModal(true);
         setSyncStatus('idle');
       } else {
         setSyncStatus('synced');
       }
-    } catch (e) { console.error("Sync failed", e); setSyncStatus('error'); }
+    } catch (e) {
+      console.error("Sync failed", e);
+      setSyncStatus('error');
+    }
   };
 
   const applyServerData = (newContent, newTimestamp) => {
-    setText(newContent); setLastSyncedTime(newTimestamp);
-    localStorage.setItem(DATA_KEY, newContent); localStorage.setItem(TS_KEY, newTimestamp.toString());
-    setSyncStatus('synced'); setShowConflictModal(false); setPendingServerData(null);
+    setText(newContent);
+    setLastSyncedTime(newTimestamp);
+    localStorage.setItem(DATA_KEY, newContent);
+    localStorage.setItem(TS_KEY, newTimestamp.toString());
+    setSyncStatus('synced');
+    setShowConflictModal(false);
+    setPendingServerData(null);
   };
 
-  const handleKeepLocal = () => { setShowConflictModal(false); setPendingServerData(null); triggerSync(text); };
-  const handleLoadCloud = () => { if (pendingServerData) applyServerData(pendingServerData.content, pendingServerData.timestamp); };
+  const handleKeepLocal = () => {
+    setShowConflictModal(false);
+    setPendingServerData(null);
+    triggerSync(text); 
+  };
+
+  const handleLoadCloud = () => {
+    if (pendingServerData) {
+      applyServerData(pendingServerData.content, pendingServerData.timestamp);
+    }
+  };
 
   const triggerSync = (newContent) => {
     const now = Date.now();
-    localStorage.setItem(DATA_KEY, newContent); localStorage.setItem(TS_KEY, now.toString());
-    setLastSyncedTime(now); setSyncStatus('idle');
+    localStorage.setItem(DATA_KEY, newContent);
+    localStorage.setItem(TS_KEY, now.toString());
+    setLastSyncedTime(now);
+    setSyncStatus('idle');
+
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
-    syncTimeoutRef.current = setTimeout(() => { performSync(newContent, now); }, 2000); 
+    
+    syncTimeoutRef.current = setTimeout(() => {
+      performSync(newContent, now);
+    }, 2000); 
   };
 
   // --- INITIALIZATION ---
@@ -558,29 +613,51 @@ export default function TodoTxtApp() {
     const localTS = localStorage.getItem(TS_KEY);
     const storedTheme = localStorage.getItem(THEME_KEY);
     
-    if (storedTheme && THEMES[storedTheme]) setCurrentTheme(storedTheme);
+    if (storedTheme && THEMES[storedTheme]) {
+      setCurrentTheme(storedTheme);
+    }
     
     let initialText = "- Welcome to Todo.txt @home\n- Syncs automatically +feature\n";
     let initialTS = 0;
 
-    if (localData) { initialText = localData; initialTS = parseInt(localTS || '0'); }
+    if (localData) {
+      initialText = localData;
+      initialTS = parseInt(localTS || '0');
+    }
 
-    setText(initialText); setLastSyncedTime(initialTS);
-    if (token) { setIsAuthenticated(true); performSync(initialText, initialTS); }
+    setText(initialText);
+    setLastSyncedTime(initialTS);
+    
+    if (token) {
+      setIsAuthenticated(true);
+      performSync(initialText, initialTS);
+    }
+    
     setIsLoadingAuth(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // --- BACKGROUND POLLING ---
   useEffect(() => {
     if (!isAuthenticated) return;
     const interval = setInterval(() => {
-      if (syncStatus !== 'syncing' && !showConflictModal && !showHistoryModal) performSync(text, lastSyncedTime, true); 
+      if (syncStatus !== 'syncing' && !showConflictModal && !showHistoryModal) {
+        performSync(text, lastSyncedTime, true); 
+      }
     }, 5000); 
     return () => clearInterval(interval);
   }, [isAuthenticated, text, lastSyncedTime, syncStatus, showConflictModal, showHistoryModal]);
 
-  const handleLogin = () => { localStorage.setItem(SESSION_KEY, 'active'); setIsAuthenticated(true); performSync(text, lastSyncedTime); };
-  const handleLogout = () => { localStorage.removeItem(SESSION_KEY); setIsAuthenticated(false); };
+  const handleLogin = () => {
+    localStorage.setItem(SESSION_KEY, 'active');
+    setIsAuthenticated(true);
+    performSync(text, lastSyncedTime);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem(SESSION_KEY);
+    setIsAuthenticated(false);
+  };
 
   // --- HANDLERS ---
   const updateActiveLine = (el) => {
@@ -591,22 +668,29 @@ export default function TodoTxtApp() {
   };
 
   const handleChange = (e) => {
-    const newVal = e.target.value; setText(newVal); triggerSync(newVal); updateActiveLine(e.target);
+    const newVal = e.target.value;
+    setText(newVal);
+    triggerSync(newVal); 
+    updateActiveLine(e.target);
   };
 
   const handleToggleLine = (index) => {
     const lines = text.split('\n');
     const line = lines[index];
-    if (REGEX.pendingTask.test(line)) lines[index] = 'x ' + line.slice(2);
-    else if (REGEX.completed.test(line)) lines[index] = '- ' + line.slice(2);
+    if (REGEX.pendingTask.test(line)) {
+      lines[index] = 'x ' + line.slice(2);
+    } else if (REGEX.completed.test(line)) {
+      lines[index] = '- ' + line.slice(2);
+    }
     const newText = lines.join('\n');
-    setText(newText); triggerSync(newText);
+    setText(newText);
+    triggerSync(newText);
     textareaRef.current?.focus();
   };
 
   const handleKeyDown = (e) => {
     if (suggestionState.isOpen) {
-      if (['ArrowDown', 'ArrowUp', 'Enter', 'Tab', 'Escape'].includes(e.key)) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Tab' || e.key === 'Escape') {
         if (e.key === 'ArrowDown') { e.preventDefault(); setSuggestionState(p => ({...p, activeIndex: (p.activeIndex + 1) % p.list.length})); return;}
         if (e.key === 'ArrowUp') { e.preventDefault(); setSuggestionState(p => ({...p, activeIndex: (p.activeIndex - 1 + p.list.length) % p.list.length})); return;}
         if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); applySuggestion(suggestionState.list[suggestionState.activeIndex]); return;}
@@ -621,15 +705,20 @@ export default function TodoTxtApp() {
     const lineIndex = val.slice(0, cursor).split('\n').length - 1;
     const currentLine = lines[lineIndex];
 
-    if (e.key === 'Backspace' && currentLine.trim() === '-' && cursor === val.lastIndexOf('\n', cursor - 1) + 3) {
+    if (e.key === 'Backspace') {
+      if (currentLine.trim() === '-' && cursor === val.lastIndexOf('\n', cursor - 1) + 3) {
          e.preventDefault();
          const lineStart = val.lastIndexOf('\n', cursor - 1) + 1;
-         const newVal = val.slice(0, lineStart) + val.slice(cursor);
-         setText(newVal); triggerSync(newVal);
+         const lineEnd = cursor;
+         const newVal = val.slice(0, lineStart) + val.slice(lineEnd);
+         setText(newVal);
+         triggerSync(newVal);
          setTimeout(() => el.setSelectionRange(lineStart, lineStart), 0);
          return;
+      }
     }
-    if (e.key === 'Enter' && (REGEX.pendingTask.test(currentLine) || REGEX.completed.test(currentLine))) {
+    if (e.key === 'Enter') {
+      if (REGEX.pendingTask.test(currentLine) || REGEX.completed.test(currentLine)) {
         e.preventDefault();
         const today = getTodayDate();
         let updatedLine = currentLine;
@@ -637,13 +726,18 @@ export default function TodoTxtApp() {
         lines[lineIndex] = updatedLine;
         lines.splice(lineIndex + 1, 0, '- '); 
         const newText = lines.join('\n');
-        setText(newText); triggerSync(newText);
+        setText(newText);
+        triggerSync(newText);
         setTimeout(() => {
            const splitNew = newText.split('\n');
-           let pos = 0; for(let i=0; i<=lineIndex; i++) pos += splitNew[i].length + 1;
-           const finalPos = pos + 2; el.setSelectionRange(finalPos, finalPos); updateActiveLine(el);
+           let pos = 0;
+           for(let i=0; i<=lineIndex; i++) pos += splitNew[i].length + 1;
+           const finalPos = pos + 2; 
+           el.setSelectionRange(finalPos, finalPos);
+           updateActiveLine(el);
         }, 0);
       }
+    }
   };
 
   const checkSuggestions = () => {
@@ -658,16 +752,23 @@ export default function TodoTxtApp() {
     while (end < val.length && !/\s/.test(val[end])) end++;
     const word = val.slice(start, end);
 
+    // DATE SHORTCUTS //
     if (word.startsWith('//')) {
-      setSuggestionState({ isOpen: true, list: getRelativeDates(), activeIndex: 0, cursorWordStart: start, cursorWordEnd: end });
+      const dates = getRelativeDates();
+      setSuggestionState({ isOpen: true, list: dates, activeIndex: 0, cursorWordStart: start, cursorWordEnd: end });
       return;
     }
+
+    // PROJECT & CONTEXT
     if (word.startsWith('+') || word.startsWith('@')) {
       const type = word[0] === '+' ? 'PROJECT' : 'CONTEXT';
       const query = word.slice(1);
       const source = type === 'PROJECT' ? metadata.projects : metadata.contexts;
       const filtered = source.filter(item => item.toLowerCase().includes(query.toLowerCase()) && item !== query).map(item => ({ type, label: null, value: item }));
-      if (filtered.length > 0) { setSuggestionState({ isOpen: true, list: filtered, activeIndex: 0, cursorWordStart: start, cursorWordEnd: end }); return; }
+      if (filtered.length > 0) {
+        setSuggestionState({ isOpen: true, list: filtered, activeIndex: 0, cursorWordStart: start, cursorWordEnd: end });
+        return;
+      }
     }
     setSuggestionState(p => ({ ...p, isOpen: false }));
   };
@@ -675,13 +776,19 @@ export default function TodoTxtApp() {
   const applySuggestion = (suggestion) => {
     const before = text.slice(0, suggestionState.cursorWordStart);
     const after = text.slice(suggestionState.cursorWordEnd);
+    
     let inserted = "";
-    if (suggestion.type === 'DATE') inserted = `${suggestion.value} `;
-    else if (suggestion.type === 'PROJECT') inserted = `+${suggestion.value} `;
-    else if (suggestion.type === 'CONTEXT') inserted = `@${suggestion.value} `;
+    if (suggestion.type === 'DATE') {
+      inserted = `${suggestion.value} `;
+    } else if (suggestion.type === 'PROJECT') {
+      inserted = `+${suggestion.value} `;
+    } else if (suggestion.type === 'CONTEXT') {
+      inserted = `@${suggestion.value} `;
+    }
 
     const newText = before + inserted + after;
-    setText(newText); triggerSync(newText);
+    setText(newText);
+    triggerSync(newText);
     setSuggestionState(p => ({ ...p, isOpen: false }));
     setTimeout(() => {
       const el = textareaRef.current;
@@ -689,16 +796,6 @@ export default function TodoTxtApp() {
     }, 0);
   };
   
-  const handleToolbarInsert = (str) => {
-      const el = textareaRef.current;
-      if (!el) return;
-      const start = el.selectionStart;
-      const end = el.selectionEnd;
-      const newText = text.substring(0, start) + str + text.substring(end);
-      setText(newText); triggerSync(newText);
-      setTimeout(() => { el.focus(); el.setSelectionRange(start + str.length, start + str.length); checkSuggestions(); }, 0);
-  };
-
   const handleScroll = () => { if (textareaRef.current && highlighterRef.current) { highlighterRef.current.scrollTop = textareaRef.current.scrollTop; highlighterRef.current.scrollLeft = textareaRef.current.scrollLeft; } };
   const toggleSearch = () => { setShowSearch(!showSearch); if (!showSearch) setTimeout(() => searchInputRef.current?.focus(), 100); else setSearchQuery(''); };
   const handleSelectionChange = (e) => { updateActiveLine(e.target); checkSuggestions(); };
@@ -706,12 +803,13 @@ export default function TodoTxtApp() {
   useEffect(() => {
     const el = textareaRef.current;
     const onInteract = (e) => handleSelectionChange(e);
-    el?.addEventListener('click', onInteract); el?.addEventListener('keyup', onInteract);
+    el?.addEventListener('click', onInteract);
+    el?.addEventListener('keyup', onInteract);
     if(el) updateActiveLine(el);
     return () => { el?.removeEventListener('click', onInteract); el?.removeEventListener('keyup', onInteract); };
   }, [text, metadata, isRawMode]);
 
-  if (isLoadingAuth) return <div className="min-h-[100dvh] bg-[var(--bg-primary)] transition-colors duration-300" style={THEMES[currentTheme].colors} />;
+  if (isLoadingAuth) return <div className="min-h-screen bg-[var(--bg-primary)] transition-colors duration-300" style={THEMES[currentTheme].colors} />;
   if (!isAuthenticated) return (
     <div style={THEMES[currentTheme].colors} className="contents">
        <LoginScreen onLogin={handleLogin} />
@@ -719,75 +817,57 @@ export default function TodoTxtApp() {
   );
 
   return (
-    <div className="h-[100dvh] flex flex-col font-sans transition-colors duration-300 bg-[var(--bg-primary)] text-[var(--text-primary)] overflow-hidden" style={THEMES[currentTheme].colors}>
-      {/* HEADER */}
-      <header className="px-4 py-3 bg-[var(--bg-primary)] border-b border-[var(--border)] flex items-center justify-between shrink-0 sticky top-0 z-30 shadow-md">
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg md:text-xl font-bold tracking-tight">todo.txt</h1>
+    <div className="min-h-screen flex flex-col font-sans transition-colors duration-300 bg-[var(--bg-primary)] text-[var(--text-primary)]" style={THEMES[currentTheme].colors}>
+      <header className="px-6 py-4 bg-[var(--bg-primary)] border-b border-[var(--border)] flex items-center justify-between shrink-0 sticky top-0 z-30 shadow-md">
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-bold tracking-tight">todo.txt</h1>
           <div className="flex items-center gap-2 text-xs font-mono">
             {syncStatus === 'syncing' && <RefreshCw className="animate-spin text-blue-500" size={14} />}
             {syncStatus === 'synced' && <Cloud className="text-[var(--color-project)]" size={14} />}
             {syncStatus === 'error' && <CloudOff className="text-[var(--color-prio)]" size={14} />}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-           <div className={`flex items-center transition-all duration-300 overflow-hidden ${showSearch ? 'w-32 md:w-64 opacity-100' : 'w-0 opacity-0'}`}>
-            <input ref={searchInputRef} type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] text-sm text-[var(--text-primary)] px-2 py-1.5 rounded-l-md outline-none focus:border-[var(--text-secondary)] placeholder-[var(--text-dim)]" />
+        <div className="flex items-center gap-3">
+           <div className={`flex items-center transition-all duration-300 overflow-hidden ${showSearch ? 'w-48 sm:w-64 opacity-100' : 'w-0 opacity-0'}`}>
+            <input ref={searchInputRef} type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] text-sm text-[var(--text-primary)] px-3 py-1.5 rounded-l-md outline-none focus:border-[var(--text-secondary)] placeholder-[var(--text-dim)]" />
             <button onClick={() => { setSearchQuery(''); setShowSearch(false); }} className="bg-[var(--bg-tertiary)] px-2 py-1.5 rounded-r-md border border-l-0 border-[var(--border)] hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]"><X size={16} /></button>
           </div>
-          <button onClick={toggleSearch} className={`p-2 rounded-md hover:bg-[var(--bg-secondary)] ${showSearch ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}><Search size={20} /></button>
-          <button onClick={() => setShowHistoryModal(true)} className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors" title="Time Machine"><History size={20} /></button>
-          <MenuDropdown 
-            currentTheme={currentTheme} 
-            onThemeSelect={handleThemeChange} 
-            isRaw={isRawMode} 
-            onToggleRaw={() => setIsRawMode(!isRawMode)} 
-            onLogout={handleLogout} 
-          />
+          <button onClick={toggleSearch} className={`p-2 rounded-md hover:bg-[var(--bg-secondary)] ${showSearch ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}><Search size={18} /></button>
+          
+          <button onClick={() => setShowHistoryModal(true)} className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors" title="Time Machine"><History size={18} /></button>
+
+          <ThemeSelector currentTheme={currentTheme} onSelect={handleThemeChange} />
+
+          <button onClick={() => setIsRawMode(!isRawMode)} className={`px-3 py-1.5 text-xs font-bold rounded-md border transition-all ${isRawMode ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'bg-[var(--bg-secondary)] text-[var(--text-dim)] border-[var(--border)] hover:border-[var(--text-dim)]'}`}>{isRawMode ? 'RAW' : 'VISUAL'}</button>
+          <button onClick={handleLogout} className="p-2 text-[var(--text-dim)] hover:text-[var(--color-prio)] transition-colors" title="Logout"><Unlock size={14} /></button>
         </div>
       </header>
 
-      {/* EDITOR AREA */}
-      <main className="flex-grow w-full max-w-full md:max-w-4xl mx-auto flex flex-col relative overflow-hidden">
-        <div className="relative w-full h-full flex-grow bg-[var(--bg-primary)] overflow-hidden">
-          {/* Highlighter Layer */}
-          <div ref={highlighterRef} aria-hidden="true" className={`absolute inset-0 p-4 md:p-6 font-mono text-base leading-relaxed whitespace-pre-wrap break-words pointer-events-none z-20 overflow-hidden transition-opacity duration-200 ${isRawMode ? 'opacity-0' : 'opacity-100'}`} style={{ fontFamily: 'monospace' }}>
+      <main className="flex-grow w-full max-w-4xl mx-auto mt-6 px-4 pb-20 flex flex-col">
+        <div className="relative w-full min-h-[60vh] flex-grow bg-[var(--bg-primary)] rounded-lg border border-[var(--border)] overflow-hidden shadow-sm">
+          <div ref={highlighterRef} aria-hidden="true" className={`absolute inset-0 p-6 font-mono text-base leading-relaxed whitespace-pre-wrap break-words pointer-events-none z-20 overflow-hidden transition-opacity duration-200 ${isRawMode ? 'opacity-0' : 'opacity-100'}`} style={{ fontFamily: 'monospace' }}>
             {text.split('\n').map((line, i) => (<HighlighterLine key={i} index={i} line={line} onToggle={handleToggleLine} isRawMode={isRawMode} isActiveLine={i === activeLineIndex} searchQuery={searchQuery} onTagClick={handleTagClick} />))}
-            {/* Extra padding at bottom to allow scroll past keyboard */}
-            <div className="h-48"></div> 
           </div>
-          {/* Input Layer */}
-          <textarea 
-            ref={textareaRef} 
-            value={text} 
-            onChange={handleChange} 
-            onScroll={handleScroll} 
-            onKeyDown={handleKeyDown} 
-            spellCheck="false" 
-            autoCapitalize="none"
-            autoComplete="off"
-            autoCorrect="off"
-            className={`absolute inset-0 w-full h-full p-4 md:p-6 font-mono text-base leading-relaxed bg-transparent resize-none outline-none z-10 whitespace-pre-wrap break-words transition-colors duration-200 ${isRawMode ? 'text-[var(--text-primary)] caret-[var(--text-primary)]' : 'text-transparent caret-[var(--color-context)]'}`} 
-            style={{ fontFamily: 'monospace', WebkitTextFillColor: isRawMode ? 'inherit' : 'transparent', }} 
-            placeholder="Type your tasks here..." 
-          />
+          <textarea ref={textareaRef} value={text} onChange={handleChange} onScroll={handleScroll} onKeyDown={handleKeyDown} spellCheck="false" className={`absolute inset-0 w-full h-full p-6 font-mono text-base leading-relaxed bg-transparent resize-none outline-none z-10 whitespace-pre-wrap break-words transition-colors duration-200 ${isRawMode ? 'text-[var(--text-primary)] caret-[var(--text-primary)]' : 'text-transparent caret-[var(--color-context)]'}`} style={{ fontFamily: 'monospace', WebkitTextFillColor: isRawMode ? 'inherit' : 'transparent', }} placeholder="Type your tasks here..." />
         </div>
-        
-        {/* FOOTER CONTROLS - Fixed to bottom of main */}
-        <div className="z-40 w-full shrink-0">
-          {!isRawMode && suggestionState.isOpen && (
-            <SuggestionBar suggestions={suggestionState.list} activeIndex={suggestionState.activeIndex} onSelect={applySuggestion} />
-          )}
-          <MobileToolbar 
-             onInsert={handleToolbarInsert} 
-             onDismiss={() => { if(textareaRef.current) textareaRef.current.blur(); }} 
-             showKeyboardToggle={true}
-          />
-        </div>
+        {!isRawMode && (<SuggestionBar suggestions={suggestionState.isOpen ? suggestionState.list : null} activeIndex={suggestionState.activeIndex} onSelect={applySuggestion} />)}
+        <GuideFooter />
       </main>
 
-      {showConflictModal && pendingServerData && <ConflictModal serverDate={pendingServerData.timestamp} onKeepLocal={handleKeepLocal} onLoadCloud={handleLoadCloud} />}
-      {showHistoryModal && <HistoryModal onClose={() => setShowHistoryModal(false)} onRestore={handleRestoreVersion} />}
+      {showConflictModal && pendingServerData && (
+        <ConflictModal 
+          serverDate={pendingServerData.timestamp}
+          onKeepLocal={handleKeepLocal}
+          onLoadCloud={handleLoadCloud}
+        />
+      )}
+
+      {showHistoryModal && (
+        <HistoryModal 
+          onClose={() => setShowHistoryModal(false)}
+          onRestore={handleRestoreVersion}
+        />
+      )}
     </div>
   );
 }

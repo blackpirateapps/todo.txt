@@ -501,7 +501,7 @@ export default function TodoTxtApp() {
   const [isRawMode, setIsRawMode] = useState(false);
   const [activeLineIndex, setActiveLineIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
+  
   const [suggestionState, setSuggestionState] = useState({ isOpen: false, list: [], activeIndex: 0, cursorWordStart: 0, cursorWordEnd: 0 });
 
   const textareaRef = useRef(null);
@@ -518,7 +518,6 @@ export default function TodoTxtApp() {
   
   const handleTagClick = (tag) => {
     setSearchQuery(tag);
-    setShowSearch(true);
     setTimeout(() => searchInputRef.current?.focus(), 100);
   };
 
@@ -829,7 +828,7 @@ export default function TodoTxtApp() {
   };
   
   const handleScroll = () => { if (textareaRef.current && highlighterRef.current) { highlighterRef.current.scrollTop = textareaRef.current.scrollTop; highlighterRef.current.scrollLeft = textareaRef.current.scrollLeft; } };
-  const toggleSearch = () => { setShowSearch(!showSearch); if (!showSearch) setTimeout(() => searchInputRef.current?.focus(), 100); else setSearchQuery(''); };
+  
   const handleSelectionChange = (e) => { updateActiveLine(e.target); checkSuggestions(); };
 
   useEffect(() => {
@@ -850,40 +849,71 @@ export default function TodoTxtApp() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans transition-colors duration-300 bg-[var(--bg-primary)] text-[var(--text-primary)]" style={THEMES[currentTheme].colors}>
-      <header className="px-4 sm:px-6 py-3 sm:py-4 bg-[var(--bg-primary)] border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-y-2 shrink-0 sticky top-0 z-30 shadow-md">
-        <div className="flex items-center gap-3 sm:gap-4">
-          <h1 className="text-lg sm:text-xl font-bold tracking-tight">todo.txt</h1>
-          <div className="flex items-center gap-2 text-[11px] sm:text-xs font-mono">
-            {syncStatus === 'syncing' && <RefreshCw className="animate-spin text-blue-500" size={14} />}
-            {syncStatus === 'synced' && <Cloud className="text-[var(--color-project)]" size={14} />}
-            {syncStatus === 'error' && <CloudOff className="text-[var(--color-prio)]" size={14} />}
+      <main className="flex-grow w-full">
+        <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 pt-6 sm:pt-8 pb-24 sm:pb-28 flex flex-col gap-4 sm:gap-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] sm:text-xs uppercase tracking-[0.35em] text-[var(--text-dim)]">todo.txt</span>
+              <div className="flex items-center gap-2 text-[11px] sm:text-xs font-mono text-[var(--text-secondary)]">
+                {syncStatus === 'syncing' && <RefreshCw className="animate-spin text-blue-500" size={14} />}
+                {syncStatus === 'synced' && <Cloud className="text-[var(--color-project)]" size={14} />}
+                {syncStatus === 'error' && <CloudOff className="text-[var(--color-prio)]" size={14} />}
+                <span className="hidden sm:inline">
+                  {syncStatus === 'syncing' ? 'Syncing' : syncStatus === 'error' ? 'Offline' : 'Synced'}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button onClick={() => setShowHistoryModal(true)} className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors" title="Time Machine"><History size={18} /></button>
+              <ThemeSelector currentTheme={currentTheme} onSelect={handleThemeChange} />
+              <button onClick={() => setIsRawMode(!isRawMode)} className={`px-3 py-1.5 text-[11px] sm:text-xs font-bold rounded-md border transition-all ${isRawMode ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'bg-[var(--bg-secondary)] text-[var(--text-dim)] border-[var(--border)] hover:border-[var(--text-dim)]'}`}>{isRawMode ? 'RAW' : 'VISUAL'}</button>
+              <button onClick={handleLogout} className="p-2 text-[var(--text-dim)] hover:text-[var(--color-prio)] transition-colors" title="Logout"><Unlock size={14} /></button>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center flex-wrap gap-2 sm:gap-3">
-           <div className={`flex items-center transition-all duration-300 overflow-hidden ${showSearch ? 'w-40 sm:w-64 opacity-100' : 'w-0 opacity-0'}`}>
-            <input ref={searchInputRef} type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] text-xs sm:text-sm text-[var(--text-primary)] px-3 py-1.5 rounded-l-md outline-none focus:border-[var(--text-secondary)] placeholder-[var(--text-dim)]" />
-            <button onClick={() => { setSearchQuery(''); setShowSearch(false); }} className="bg-[var(--bg-tertiary)] px-2 py-1.5 rounded-r-md border border-l-0 border-[var(--border)] hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]"><X size={16} /></button>
+
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] shadow-[0_18px_45px_rgba(0,0,0,0.25)] overflow-hidden">
+            <div className="flex flex-wrap items-center gap-2 px-3 sm:px-4 py-2 sm:py-3 border-b border-[var(--border)] bg-[var(--bg-secondary)]">
+              <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                <Search size={14} className="text-[var(--text-dim)]" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search tasks, tags, or dates"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-transparent text-xs sm:text-sm text-[var(--text-primary)] outline-none placeholder-[var(--text-dim)]"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="text-[var(--text-dim)] hover:text-[var(--text-primary)] transition-colors"><X size={14} /></button>
+                )}
+              </div>
+            </div>
+
+            <div className="relative w-full min-h-[55vh] sm:min-h-[60vh] flex-grow bg-[var(--bg-primary)]">
+              <div ref={highlighterRef} aria-hidden="true" className={`absolute inset-0 p-4 sm:p-6 font-mono text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words pointer-events-none z-20 overflow-hidden transition-opacity duration-200 ${isRawMode ? 'opacity-0' : 'opacity-100'}`} style={{ fontFamily: 'monospace' }}>
+                {text.split('\n').map((line, i) => (<HighlighterLine key={i} index={i} line={line} onToggle={handleToggleLine} isRawMode={isRawMode} isActiveLine={i === activeLineIndex} searchQuery={searchQuery} onTagClick={handleTagClick} />))}
+              </div>
+              <textarea
+                ref={textareaRef}
+                value={text}
+                onChange={handleChange}
+                onScroll={handleScroll}
+                onKeyDown={handleKeyDown}
+                spellCheck="false"
+                className={`absolute inset-0 w-full h-full p-4 sm:p-6 font-mono text-sm sm:text-base leading-relaxed bg-transparent resize-none outline-none z-10 whitespace-pre-wrap break-words transition-colors duration-200 ${isRawMode ? 'text-[var(--text-primary)] caret-[var(--text-primary)]' : 'caret-[var(--color-context)]'}`}
+                style={{
+                  fontFamily: 'monospace',
+                  color: isRawMode ? 'inherit' : 'rgba(0,0,0,0.02)',
+                  WebkitTextFillColor: isRawMode ? 'inherit' : 'rgba(0,0,0,0.02)'
+                }}
+                placeholder="Type your tasks here..."
+              />
+            </div>
           </div>
-          <button onClick={toggleSearch} className={`p-2 rounded-md hover:bg-[var(--bg-secondary)] ${showSearch ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}><Search size={18} /></button>
-          
-          <button onClick={() => setShowHistoryModal(true)} className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors" title="Time Machine"><History size={18} /></button>
 
-          <ThemeSelector currentTheme={currentTheme} onSelect={handleThemeChange} />
-
-          <button onClick={() => setIsRawMode(!isRawMode)} className={`px-3 py-1.5 text-xs font-bold rounded-md border transition-all ${isRawMode ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'bg-[var(--bg-secondary)] text-[var(--text-dim)] border-[var(--border)] hover:border-[var(--text-dim)]'}`}>{isRawMode ? 'RAW' : 'VISUAL'}</button>
-          <button onClick={handleLogout} className="p-2 text-[var(--text-dim)] hover:text-[var(--color-prio)] transition-colors" title="Logout"><Unlock size={14} /></button>
+          {!isRawMode && (<SuggestionBar suggestions={suggestionState.isOpen ? suggestionState.list : null} activeIndex={suggestionState.activeIndex} onSelect={applySuggestion} />)}
+          <GuideFooter />
         </div>
-      </header>
-
-      <main className="flex-grow w-full max-w-5xl mx-auto mt-4 sm:mt-6 px-3 sm:px-6 pb-24 sm:pb-20 flex flex-col">
-        <div className="relative w-full min-h-[55vh] sm:min-h-[60vh] flex-grow bg-[var(--bg-primary)] rounded-md sm:rounded-lg border border-[var(--border)] overflow-hidden shadow-sm">
-          <div ref={highlighterRef} aria-hidden="true" className={`absolute inset-0 p-4 sm:p-6 font-mono text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words pointer-events-none z-20 overflow-hidden transition-opacity duration-200 ${isRawMode ? 'opacity-0' : 'opacity-100'}`} style={{ fontFamily: 'monospace' }}>
-            {text.split('\n').map((line, i) => (<HighlighterLine key={i} index={i} line={line} onToggle={handleToggleLine} isRawMode={isRawMode} isActiveLine={i === activeLineIndex} searchQuery={searchQuery} onTagClick={handleTagClick} />))}
-          </div>
-          <textarea ref={textareaRef} value={text} onChange={handleChange} onScroll={handleScroll} onKeyDown={handleKeyDown} spellCheck="false" className={`absolute inset-0 w-full h-full p-4 sm:p-6 font-mono text-sm sm:text-base leading-relaxed bg-transparent resize-none outline-none z-10 whitespace-pre-wrap break-words transition-colors duration-200 ${isRawMode ? 'text-[var(--text-primary)] caret-[var(--text-primary)]' : 'text-transparent caret-[var(--color-context)]'}`} style={{ fontFamily: 'monospace', WebkitTextFillColor: isRawMode ? 'inherit' : 'transparent', }} placeholder="Type your tasks here..." />
-        </div>
-        {!isRawMode && (<SuggestionBar suggestions={suggestionState.isOpen ? suggestionState.list : null} activeIndex={suggestionState.activeIndex} onSelect={applySuggestion} />)}
-        <GuideFooter />
       </main>
 
       {showConflictModal && pendingServerData && (

@@ -5,6 +5,24 @@ import { Search, X, Lock, Unlock, ArrowRight, Cloud, CloudOff, RefreshCw, AlertT
 
 // --- THEME DEFINITIONS ---
 const THEMES = {
+  paper: {
+    name: 'Paper',
+    colors: {
+      '--bg-primary': '#f6f4ef',
+      '--bg-secondary': '#faf8f3',
+      '--bg-tertiary': '#ebe7df',
+      '--text-primary': '#1f2933',
+      '--text-secondary': '#52606d',
+      '--text-dim': '#9aa5b1',
+      '--border': '#d7d2c8',
+      '--color-prio': '#d64545',
+      '--color-project': '#2f9e44',
+      '--color-context': '#0f7b7b',
+      '--color-date': '#a36b1f',
+      '--bg-sticky': 'rgba(255, 214, 165, 0.2)',
+      '--text-sticky': '#8a4b12',
+    }
+  },
   cyberpunk: {
     name: 'Cyberpunk',
     colors: {
@@ -491,7 +509,7 @@ export default function TodoTxtApp() {
   const [text, setText] = useState("");
   const [lastSyncedTime, setLastSyncedTime] = useState(0); 
   const [syncStatus, setSyncStatus] = useState('idle'); 
-  const [currentTheme, setCurrentTheme] = useState('cyberpunk');
+  const [currentTheme, setCurrentTheme] = useState('paper');
   
   // Modal States
   const [showConflictModal, setShowConflictModal] = useState(false);

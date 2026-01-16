@@ -193,11 +193,11 @@ const LoginScreen = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 font-mono bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
-      <div className="w-full max-w-sm bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-8 shadow-2xl">
+      <div className="w-full max-w-sm bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 sm:p-8 shadow-2xl">
         <div className="flex justify-center mb-6 text-[var(--text-secondary)]">
           <Lock size={48} strokeWidth={1.5} />
         </div>
-        <h2 className="text-xl font-bold text-center mb-2 tracking-tight">Access Restricted</h2>
+        <h2 className="text-lg sm:text-xl font-bold text-center mb-2 tracking-tight">Access Restricted</h2>
         <form onSubmit={handleSubmit} className="relative mt-8">
           <input
             autoFocus
@@ -205,7 +205,7 @@ const LoginScreen = ({ onLogin }) => {
             value={input}
             onChange={(e) => { setInput(e.target.value); setError(false); }}
             placeholder="Enter password..."
-            className={`w-full bg-[var(--bg-primary)] border ${error ? 'border-red-900 text-red-500' : 'border-[var(--border)] text-[var(--text-primary)]'} rounded px-4 py-3 outline-none focus:border-[var(--text-secondary)] transition-colors text-center tracking-widest`}
+            className={`w-full bg-[var(--bg-primary)] border ${error ? 'border-red-900 text-red-500' : 'border-[var(--border)] text-[var(--text-primary)]'} rounded px-4 py-3 outline-none focus:border-[var(--text-secondary)] transition-colors text-center tracking-widest text-sm sm:text-base`}
           />
           <button type="submit" className="absolute right-2 top-2 bottom-2 aspect-square bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded flex items-center justify-center border border-[var(--border)]">
             <ArrowRight size={16} />
@@ -284,7 +284,7 @@ const HistoryModal = ({ onClose, onRestore }) => {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl w-full max-w-4xl h-[80vh] flex overflow-hidden shadow-2xl flex-col md:flex-row text-[var(--text-primary)]">
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg sm:rounded-xl w-full max-w-4xl h-[85vh] sm:h-[80vh] flex overflow-hidden shadow-2xl flex-col md:flex-row text-[var(--text-primary)]">
         
         {/* Left: List */}
         <div className="w-full md:w-1/3 border-b md:border-b-0 md:border-r border-[var(--border)] flex flex-col bg-[var(--bg-primary)]">
@@ -315,7 +315,7 @@ const HistoryModal = ({ onClose, onRestore }) => {
              <button onClick={onClose} className="hidden md:block p-1 hover:bg-[var(--bg-tertiary)] rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)]"><X size={18}/></button>
            </div>
            
-           <div className="flex-1 overflow-y-auto p-6 font-mono text-sm whitespace-pre-wrap">
+           <div className="flex-1 overflow-y-auto p-4 sm:p-6 font-mono text-xs sm:text-sm whitespace-pre-wrap">
               {loadingContent ? (
                 <div className="flex items-center justify-center h-full text-[var(--text-dim)] gap-2"><RefreshCw className="animate-spin" size={16}/> Loading content...</div>
               ) : selectedVersion ? (
@@ -418,14 +418,14 @@ const HighlighterContent = ({ line, isRawMode, isActiveLine, searchQuery, onTagC
 const SuggestionBar = ({ suggestions, activeIndex, onSelect }) => {
   if (!suggestions || suggestions.length === 0) return null;
   return (
-    <div className="fixed bottom-10 left-0 right-0 mx-auto w-full max-w-2xl px-4 z-50">
+    <div className="fixed bottom-6 sm:bottom-10 left-0 right-0 mx-auto w-full max-w-lg sm:max-w-2xl px-3 sm:px-4 z-50">
       <div className="bg-[var(--bg-secondary)] border border-[var(--border)] shadow-2xl rounded-lg overflow-hidden flex flex-col">
         <div className="bg-[var(--bg-tertiary)] px-3 py-1 text-xs font-semibold text-[var(--text-secondary)] border-b border-[var(--border)] flex justify-between">
           <span>SUGGESTIONS</span><span className="hidden sm:inline">Tab to select</span>
         </div>
         <div className="max-h-48 overflow-y-auto p-1 bg-[var(--bg-secondary)]">
           {suggestions.map((item, idx) => (
-            <button key={item.label + idx} onClick={() => onSelect(item)} className={`w-full text-left px-3 py-2 text-sm font-mono rounded-md transition-colors ${idx === activeIndex ? 'bg-[var(--bg-primary)] text-[var(--color-context)]' : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'}`}>
+            <button key={item.label + idx} onClick={() => onSelect(item)} className={`w-full text-left px-3 py-2 text-xs sm:text-sm font-mono rounded-md transition-colors ${idx === activeIndex ? 'bg-[var(--bg-primary)] text-[var(--color-context)]' : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'}`}>
               <span className="opacity-50 mr-2 text-[var(--text-dim)] text-xs tracking-wider">{item.type}</span>
               <span className="text-[var(--text-primary)] font-medium">{item.label || item.value}</span>
               {item.label && <span className="ml-2 text-[var(--text-dim)] opacity-50 text-xs">{item.value}</span>}
@@ -438,8 +438,8 @@ const SuggestionBar = ({ suggestions, activeIndex, onSelect }) => {
 };
 
 const GuideFooter = () => (
-  <footer className="mt-8 mb-4 border-t border-[var(--border)] pt-6 px-2 text-sm text-[var(--text-secondary)]">
-     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <footer className="mt-6 sm:mt-8 mb-6 border-t border-[var(--border)] pt-5 sm:pt-6 px-1 sm:px-2 text-xs sm:text-sm text-[var(--text-secondary)]">
+     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
        <div><h3 className="font-bold text-[var(--text-primary)] mb-2">Shortcuts</h3><ul className="space-y-1 text-xs"><li>Enter: New Task</li><li>Backspace: Delete Task</li></ul></div>
        <div><h3 className="font-bold text-[var(--text-primary)] mb-2">Syntax</h3><ul className="space-y-1 text-xs"><li>- Task, x Done, (A) Prio</li><li>+Project, @Context</li></ul></div>
        <div><h3 className="font-bold text-[var(--text-primary)] mb-2">Autofill</h3><ul className="space-y-1 text-xs"><li>Type <code className="text-[var(--color-context)] font-bold">//</code> for dates</li><li>Type <code className="text-[var(--color-project)]">+</code> or <code className="text-[var(--color-context)]">@</code> for tags</li></ul></div>
@@ -508,6 +508,9 @@ export default function TodoTxtApp() {
   const highlighterRef = useRef(null);
   const searchInputRef = useRef(null);
   const syncTimeoutRef = useRef(null);
+  const syncInFlightRef = useRef(false);
+  const pendingSyncRef = useRef(null);
+  const latestTextRef = useRef(text);
 
   const metadata = useMemo(() => extractMetadata(text), [text]);
 
@@ -534,6 +537,7 @@ export default function TodoTxtApp() {
   
   const performSync = async (content, timestamp, isBackground = false) => {
     if (!isBackground) setSyncStatus('syncing');
+    syncInFlightRef.current = true;
 
     try {
       const res = await fetch('/api/sync', {
@@ -558,15 +562,32 @@ export default function TodoTxtApp() {
             applyServerData(data.content, data.timestamp);
             return;
         }
-        setPendingServerData({ content: data.content, timestamp: data.timestamp });
-        setShowConflictModal(true);
-        setSyncStatus('idle');
+        const currentText = latestTextRef.current;
+        if (currentText !== content) {
+          const queuedTimestamp = parseInt(localStorage.getItem(TS_KEY) || '0', 10) || Date.now();
+          pendingSyncRef.current = { content: currentText, timestamp: queuedTimestamp };
+          setSyncStatus('idle');
+          if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+          syncTimeoutRef.current = setTimeout(() => {
+            flushSyncQueue();
+          }, 150);
+          return;
+        }
+        applyServerData(data.content, data.timestamp);
       } else {
         setSyncStatus('synced');
       }
     } catch (e) {
       console.error("Sync failed", e);
       setSyncStatus('error');
+    } finally {
+      syncInFlightRef.current = false;
+      if (pendingSyncRef.current) {
+        if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+        syncTimeoutRef.current = setTimeout(() => {
+          flushSyncQueue();
+        }, 150);
+      }
     }
   };
 
@@ -592,6 +613,13 @@ export default function TodoTxtApp() {
     }
   };
 
+  const flushSyncQueue = () => {
+    if (syncInFlightRef.current || !pendingSyncRef.current) return;
+    const { content, timestamp } = pendingSyncRef.current;
+    pendingSyncRef.current = null;
+    performSync(content, timestamp);
+  };
+
   const triggerSync = (newContent) => {
     const now = Date.now();
     localStorage.setItem(DATA_KEY, newContent);
@@ -600,10 +628,10 @@ export default function TodoTxtApp() {
     setSyncStatus('idle');
 
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
-    
+    pendingSyncRef.current = { content: newContent, timestamp: now };
     syncTimeoutRef.current = setTimeout(() => {
-      performSync(newContent, now);
-    }, 2000); 
+      flushSyncQueue();
+    }, 300);
   };
 
   // --- INITIALIZATION ---
@@ -637,14 +665,18 @@ export default function TodoTxtApp() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    latestTextRef.current = text;
+  }, [text]);
+
   // --- BACKGROUND POLLING ---
   useEffect(() => {
     if (!isAuthenticated) return;
     const interval = setInterval(() => {
-      if (syncStatus !== 'syncing' && !showConflictModal && !showHistoryModal) {
-        performSync(text, lastSyncedTime, true); 
+      if (syncStatus !== 'syncing' && !showConflictModal && !showHistoryModal && !pendingSyncRef.current) {
+        performSync(latestTextRef.current, lastSyncedTime, true); 
       }
-    }, 5000); 
+    }, 1500); 
     return () => clearInterval(interval);
   }, [isAuthenticated, text, lastSyncedTime, syncStatus, showConflictModal, showHistoryModal]);
 
@@ -818,18 +850,18 @@ export default function TodoTxtApp() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans transition-colors duration-300 bg-[var(--bg-primary)] text-[var(--text-primary)]" style={THEMES[currentTheme].colors}>
-      <header className="px-6 py-4 bg-[var(--bg-primary)] border-b border-[var(--border)] flex items-center justify-between shrink-0 sticky top-0 z-30 shadow-md">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold tracking-tight">todo.txt</h1>
-          <div className="flex items-center gap-2 text-xs font-mono">
+      <header className="px-4 sm:px-6 py-3 sm:py-4 bg-[var(--bg-primary)] border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-y-2 shrink-0 sticky top-0 z-30 shadow-md">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <h1 className="text-lg sm:text-xl font-bold tracking-tight">todo.txt</h1>
+          <div className="flex items-center gap-2 text-[11px] sm:text-xs font-mono">
             {syncStatus === 'syncing' && <RefreshCw className="animate-spin text-blue-500" size={14} />}
             {syncStatus === 'synced' && <Cloud className="text-[var(--color-project)]" size={14} />}
             {syncStatus === 'error' && <CloudOff className="text-[var(--color-prio)]" size={14} />}
           </div>
         </div>
-        <div className="flex items-center gap-3">
-           <div className={`flex items-center transition-all duration-300 overflow-hidden ${showSearch ? 'w-48 sm:w-64 opacity-100' : 'w-0 opacity-0'}`}>
-            <input ref={searchInputRef} type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] text-sm text-[var(--text-primary)] px-3 py-1.5 rounded-l-md outline-none focus:border-[var(--text-secondary)] placeholder-[var(--text-dim)]" />
+        <div className="flex items-center flex-wrap gap-2 sm:gap-3">
+           <div className={`flex items-center transition-all duration-300 overflow-hidden ${showSearch ? 'w-40 sm:w-64 opacity-100' : 'w-0 opacity-0'}`}>
+            <input ref={searchInputRef} type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] text-xs sm:text-sm text-[var(--text-primary)] px-3 py-1.5 rounded-l-md outline-none focus:border-[var(--text-secondary)] placeholder-[var(--text-dim)]" />
             <button onClick={() => { setSearchQuery(''); setShowSearch(false); }} className="bg-[var(--bg-tertiary)] px-2 py-1.5 rounded-r-md border border-l-0 border-[var(--border)] hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]"><X size={16} /></button>
           </div>
           <button onClick={toggleSearch} className={`p-2 rounded-md hover:bg-[var(--bg-secondary)] ${showSearch ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}><Search size={18} /></button>
@@ -843,12 +875,12 @@ export default function TodoTxtApp() {
         </div>
       </header>
 
-      <main className="flex-grow w-full max-w-4xl mx-auto mt-6 px-4 pb-20 flex flex-col">
-        <div className="relative w-full min-h-[60vh] flex-grow bg-[var(--bg-primary)] rounded-lg border border-[var(--border)] overflow-hidden shadow-sm">
-          <div ref={highlighterRef} aria-hidden="true" className={`absolute inset-0 p-6 font-mono text-base leading-relaxed whitespace-pre-wrap break-words pointer-events-none z-20 overflow-hidden transition-opacity duration-200 ${isRawMode ? 'opacity-0' : 'opacity-100'}`} style={{ fontFamily: 'monospace' }}>
+      <main className="flex-grow w-full max-w-5xl mx-auto mt-4 sm:mt-6 px-3 sm:px-6 pb-24 sm:pb-20 flex flex-col">
+        <div className="relative w-full min-h-[55vh] sm:min-h-[60vh] flex-grow bg-[var(--bg-primary)] rounded-md sm:rounded-lg border border-[var(--border)] overflow-hidden shadow-sm">
+          <div ref={highlighterRef} aria-hidden="true" className={`absolute inset-0 p-4 sm:p-6 font-mono text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words pointer-events-none z-20 overflow-hidden transition-opacity duration-200 ${isRawMode ? 'opacity-0' : 'opacity-100'}`} style={{ fontFamily: 'monospace' }}>
             {text.split('\n').map((line, i) => (<HighlighterLine key={i} index={i} line={line} onToggle={handleToggleLine} isRawMode={isRawMode} isActiveLine={i === activeLineIndex} searchQuery={searchQuery} onTagClick={handleTagClick} />))}
           </div>
-          <textarea ref={textareaRef} value={text} onChange={handleChange} onScroll={handleScroll} onKeyDown={handleKeyDown} spellCheck="false" className={`absolute inset-0 w-full h-full p-6 font-mono text-base leading-relaxed bg-transparent resize-none outline-none z-10 whitespace-pre-wrap break-words transition-colors duration-200 ${isRawMode ? 'text-[var(--text-primary)] caret-[var(--text-primary)]' : 'text-transparent caret-[var(--color-context)]'}`} style={{ fontFamily: 'monospace', WebkitTextFillColor: isRawMode ? 'inherit' : 'transparent', }} placeholder="Type your tasks here..." />
+          <textarea ref={textareaRef} value={text} onChange={handleChange} onScroll={handleScroll} onKeyDown={handleKeyDown} spellCheck="false" className={`absolute inset-0 w-full h-full p-4 sm:p-6 font-mono text-sm sm:text-base leading-relaxed bg-transparent resize-none outline-none z-10 whitespace-pre-wrap break-words transition-colors duration-200 ${isRawMode ? 'text-[var(--text-primary)] caret-[var(--text-primary)]' : 'text-transparent caret-[var(--color-context)]'}`} style={{ fontFamily: 'monospace', WebkitTextFillColor: isRawMode ? 'inherit' : 'transparent', }} placeholder="Type your tasks here..." />
         </div>
         {!isRawMode && (<SuggestionBar suggestions={suggestionState.isOpen ? suggestionState.list : null} activeIndex={suggestionState.activeIndex} onSelect={applySuggestion} />)}
         <GuideFooter />
